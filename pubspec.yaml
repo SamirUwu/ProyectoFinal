@@ -9,7 +9,8 @@ environment:
   sdk: ^3.8.1
 
 dependencies:
-  flutter_knob: ^1.0.3
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
   flutter:
     sdk: flutter
   flutter_bluetooth_serial: ^0.4.0

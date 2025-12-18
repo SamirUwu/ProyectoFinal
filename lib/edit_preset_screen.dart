@@ -1,10 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'edit_effect_screen.dart';
 
-class EditPresetScreen extends StatelessWidget {
+class EditPresetScreen extends StatefulWidget {
   final String presetName;
+  final Map<String, double>? initialValues;
+  const EditPresetScreen({super.key, required this.presetName, this.initialValues});
 
-  const EditPresetScreen({super.key, required this.presetName});
+  @override
+  State<EditPresetScreen> createState() => _EditPresetScreenState();
+}
+
+class _EditPresetScreenState extends State<EditPresetScreen> {
+  
+  Map<String, Map<String, double>> presetData = {};
+
+  @override
+  void initState() {
+    
+    super.initState();
+
+    final box = Hive.box('presets');
+    debugPrint('HIVE CONTENIDO COMPLETO: ${box.toMap()}');
+
+    final saved = box.get(widget.presetName);
+
+    debugPrint('HIVE GET (${widget.presetName}): $saved');
+
+
+    if (saved != null) {
+      presetData = Map<String, Map<String, double>>.from(
+        saved.map(
+          (k, v) => MapEntry(k, Map<String, double>.from(v)),
+        ),
+      );
+    }
+    debugPrint('PRESET CARGADO: $presetData');
+  }
+
+  @override
+  void dispose() {
+    final box = Hive.box('presets');
+    box.put(widget.presetName, {
+      for (final entry in presetData.entries)
+        entry.key: Map<String, double>.from(entry.value)
+    });
+
+    debugPrint('GUARDADO EN DISPOSE: $presetData');
+    debugPrint('HIVE EN EDIT PRESET: ${Hive.box('presets').toMap()}');
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,12 +58,32 @@ class EditPresetScreen extends StatelessWidget {
         title: const Text("Editar Preset"),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            final box = Hive.box('presets');
+            box.put(widget.presetName, {
+              for (final entry in presetData.entries)
+                entry.key: Map<String, double>.from(entry.value)
+            });
+            debugPrint('AUTO-GUARDADO PRESET: $presetData');
+            Navigator.pop(context);
+          },
         ),
         actions: [
           TextButton(
             onPressed: () {
-              // A futuro: Guardar preset
+              final box = Hive.box('presets');
+
+              debugPrint('ANTES DE GUARDAR: ${box.toMap()}');
+
+              box.put(widget.presetName, {
+                for (final entry in presetData.entries)
+                  entry.key: Map<String, double>.from(entry.value)
+              });
+              debugPrint('DESPUÉS DE GUARDAR: ${box.toMap()}');
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Preset guardado')),
+              );
             },
             child: const Text(
               "Guardar",
@@ -33,15 +98,15 @@ class EditPresetScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              "Preset: $presetName",
+              "Preset: ${widget.presetName}",
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 20),
-            _buildEffectBlock(context, "Effect 1"),
             const SizedBox(height: 12),
-            _buildEffectBlock(context, "Effect 2"),
+            _buildEffectBlock(context, "Delay"),
             const SizedBox(height: 12),
-            _buildEffectBlock(context, "Effect 3"),
+            _buildEffectBlock(context, "Overdrive"),
+            const SizedBox(height: 12),
+            _buildEffectBlock(context, "Distortion"),
           ],
         ),
       ),
@@ -50,13 +115,24 @@ class EditPresetScreen extends StatelessWidget {
 
   Widget _buildEffectBlock(BuildContext context, String title) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push<Map<String, double>>(
           context,
           MaterialPageRoute(
-            builder: (context) => EditEffectScreen(effectName: title),
+            builder: (context) => EditEffectScreen(
+              effectName: title,
+              initialValues: presetData[title],
+            ),
           ),
         );
+
+        if (result != null) {
+          debugPrint('VALORES DEVUELTOS DE $title: $result');
+          setState(() {
+            presetData[title] = result;
+          });
+          debugPrint('PRESET DATA ACTUALIZADO: $presetData');
+        }
       },
       child: Container(
         height: 80,

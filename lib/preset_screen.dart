@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'edit_preset_screen.dart';
+import 'package:hive/hive.dart';
+
 
 class PresetScreen extends StatefulWidget {
   const PresetScreen({super.key});
@@ -12,6 +14,32 @@ class _PresetScreenState extends State<PresetScreen> {
   final List<String> presets = ['Preset 1', 'Preset 2', 'Preset 3'];
   final int maxPresets = 8;
   final List<String> attachedPresets = [];
+
+  void _loadPresetsFromHive() {
+    final box = Hive.box('presets');
+    final savedPresets = box.get('__preset_list__');
+
+    if (savedPresets is List && savedPresets.isNotEmpty) {
+      setState(() {
+        presets
+          ..clear()
+          ..addAll(List<String>.from(savedPresets));
+      });
+    } else {
+      debugPrint('Hive devolvió lista vacía, mantengo presets en memoria');
+    }
+
+    debugPrint('PRESETS EN MEMORIA: $presets');
+  }
+
+
+
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPresetsFromHive();
+  }
 
     void _sendToESP32() {
     if (attachedPresets.isEmpty) {
@@ -73,9 +101,12 @@ class _PresetScreenState extends State<PresetScreen> {
       ),
     );
 
-    if (result != null && result.isNotEmpty) {
+    if (result?.isNotEmpty == true) {
       setState(() {
-        presets.add(result);
+        presets.add(result!);
+        final box = Hive.box('presets');
+        box.put('__preset_list__', presets);
+        debugPrint('LISTA DE PRESETS GUARDADA: $presets');
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -107,8 +138,12 @@ class _PresetScreenState extends State<PresetScreen> {
               onTap: () {
                 Navigator.pop(context);
                 setState(() {
-                  String removed = presets.removeAt(index);
-                  attachedPresets.remove(removed); // si estaba anexado, quitarlo también
+                  final box = Hive.box('presets');
+                  final removed = presets.removeAt(index);
+
+                  attachedPresets.remove(removed);
+                  box.delete(removed); // borra datos del preset
+                  box.put('__preset_list__', presets);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Preset "$removed" eliminado'),
@@ -173,9 +208,22 @@ class _PresetScreenState extends State<PresetScreen> {
       ),
     );
 
-    if (newName != null && newName.isNotEmpty) {
+    if (newName?.isNotEmpty == true) {
       setState(() {
-        presets[index] = newName;
+        final box = Hive.box('presets');
+
+        final oldName = presets[index];
+        presets[index] = newName!;
+
+        // mover datos del preset si existían
+        final presetData = box.get(oldName);
+        if (presetData != null) {
+          box.delete(oldName);
+          box.put(newName, presetData);
+        }
+
+        // guardar lista actualizada
+        box.put('__preset_list__', presets);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -210,13 +258,14 @@ class _PresetScreenState extends State<PresetScreen> {
                   return Card(
                     child: ListTile(
                       title: Text(presets[index]),
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => EditPresetScreen(presetName: presets[index]),
                           ),
                         );
+                        _loadPresetsFromHive();
                       },
                       onLongPress: () => _showPresetOptions(index),
                     ),
