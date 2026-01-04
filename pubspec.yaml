@@ -13,7 +13,7 @@ dependencies:
   hive_flutter: ^1.1.0
   flutter:
     sdk: flutter
-  flutter_bluetooth_serial: ^0.4.0
+  flutter_bluetooth_serial: 0.4.0
 
   cupertino_icons: ^1.0.8
 

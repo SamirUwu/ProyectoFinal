@@ -20,12 +20,12 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
     
     super.initState();
 
-    final box = Hive.box('presets');
-    debugPrint('HIVE CONTENIDO COMPLETO: ${box.toMap()}');
+    final box = Hive.box('preset_data');
+    //debugPrint('HIVE CONTENIDO COMPLETO: ${box.toMap()}');
 
     final saved = box.get(widget.presetName);
 
-    debugPrint('HIVE GET (${widget.presetName}): $saved');
+    //debugPrint('HIVE GET (${widget.presetName}): $saved');
 
 
     if (saved != null) {
@@ -35,19 +35,19 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
         ),
       );
     }
-    debugPrint('PRESET CARGADO: $presetData');
+    //debugPrint('PRESET CARGADO: $presetData');
   }
 
   @override
   void dispose() {
-    final box = Hive.box('presets');
+    final box = Hive.box('preset_data');
     box.put(widget.presetName, {
       for (final entry in presetData.entries)
         entry.key: Map<String, double>.from(entry.value)
     });
 
-    debugPrint('GUARDADO EN DISPOSE: $presetData');
-    debugPrint('HIVE EN EDIT PRESET: ${Hive.box('presets').toMap()}');
+    //debugPrint('GUARDADO EN DISPOSE: $presetData');
+    //debugPrint('HIVE EN EDIT PRESET: ${Hive.box('preset_data').toMap()}');
     super.dispose();
   }
 
@@ -59,27 +59,27 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            final box = Hive.box('presets');
+            final box = Hive.box('preset_data');
             box.put(widget.presetName, {
               for (final entry in presetData.entries)
                 entry.key: Map<String, double>.from(entry.value)
             });
-            debugPrint('AUTO-GUARDADO PRESET: $presetData');
+            //debugPrint('AUTO-GUARDADO PRESET: $presetData');
             Navigator.pop(context);
           },
         ),
         actions: [
           TextButton(
             onPressed: () {
-              final box = Hive.box('presets');
+              final box = Hive.box('preset_data');
 
-              debugPrint('ANTES DE GUARDAR: ${box.toMap()}');
+              //debugPrint('ANTES DE GUARDAR: ${box.toMap()}');
 
               box.put(widget.presetName, {
                 for (final entry in presetData.entries)
                   entry.key: Map<String, double>.from(entry.value)
               });
-              debugPrint('DESPUÉS DE GUARDAR: ${box.toMap()}');
+              //debugPrint('DESPUÉS DE GUARDAR: ${box.toMap()}');
 
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Preset guardado')),
@@ -127,11 +127,11 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
         );
 
         if (result != null) {
-          debugPrint('VALORES DEVUELTOS DE $title: $result');
+          //debugPrint('VALORES DEVUELTOS DE $title: $result');
           setState(() {
             presetData[title] = result;
           });
-          debugPrint('PRESET DATA ACTUALIZADO: $presetData');
+          //debugPrint('PRESET DATA ACTUALIZADO: $presetData');
         }
       },
       child: Container(

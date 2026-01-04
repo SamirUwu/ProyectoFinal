@@ -5,7 +5,9 @@ import 'welcome_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
-  await Hive.openBox('presets'); 
+  await Hive.openBox('preset_list'); 
+  await Hive.openBox('preset_data');
+  
   runApp(const MyApp());
 }
 

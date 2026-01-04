@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'edit_preset_screen.dart';
 import 'package:hive/hive.dart';
+import 'dart:convert'; // necesario para jsonEncode
 
 
 class PresetScreen extends StatefulWidget {
@@ -11,28 +12,24 @@ class PresetScreen extends StatefulWidget {
 }
 
 class _PresetScreenState extends State<PresetScreen> {
-  final List<String> presets = ['Preset 1', 'Preset 2', 'Preset 3'];
+  final List<String> presets = [];
   final int maxPresets = 8;
   final List<String> attachedPresets = [];
 
   void _loadPresetsFromHive() {
-    final box = Hive.box('presets');
-    final savedPresets = box.get('__preset_list__');
+    final box = Hive.box('preset_list');
+    final savedPresets = box.get('list');
 
-    if (savedPresets is List && savedPresets.isNotEmpty) {
+    if (savedPresets is List) {
       setState(() {
         presets
           ..clear()
           ..addAll(List<String>.from(savedPresets));
       });
-    } else {
-      debugPrint('Hive devolvió lista vacía, mantengo presets en memoria');
     }
 
-    debugPrint('PRESETS EN MEMORIA: $presets');
+    //debugPrint('PRESETS EN MEMORIA: $presets');
   }
-
-
 
 
   @override
@@ -52,12 +49,34 @@ class _PresetScreenState extends State<PresetScreen> {
       return;
     }
 
-    // Simulación de envío
-    print("Enviando a ESP32: $attachedPresets");
+    final dataBox = Hive.box('preset_data');
+
+    Map<String, Map<String, Map<String, double>>> presetsToSend = {};
+    for (var presetName in attachedPresets) {
+      final data = dataBox.get(presetName);
+      if (data != null) {
+        // hacemos copia para evitar referencias extrañas
+        presetsToSend[presetName] = Map<String, Map<String, double>>.from(data);
+      }
+    }
+
+    if (presetsToSend.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se encontraron datos de los presets seleccionados'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // Convertimos a JSON
+    final jsonString = jsonEncode(presetsToSend);
+    debugPrint('JSON listo para enviar a ESP32: $jsonString');
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Presets enviados: ${attachedPresets.join(', ')}'),
+        content: Text('Presets preparados para enviar: ${attachedPresets.join(', ')}'),
         duration: const Duration(seconds: 3),
       ),
     );
@@ -104,9 +123,9 @@ class _PresetScreenState extends State<PresetScreen> {
     if (result?.isNotEmpty == true) {
       setState(() {
         presets.add(result!);
-        final box = Hive.box('presets');
-        box.put('__preset_list__', presets);
-        debugPrint('LISTA DE PRESETS GUARDADA: $presets');
+        final box = Hive.box('preset_list');
+        box.put('list', presets);
+        //debugPrint('LISTA DE PRESETS GUARDADA: $presets');
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -138,12 +157,15 @@ class _PresetScreenState extends State<PresetScreen> {
               onTap: () {
                 Navigator.pop(context);
                 setState(() {
-                  final box = Hive.box('presets');
+                  final listBox = Hive.box('preset_list');
+                  final dataBox = Hive.box('preset_data');
+
                   final removed = presets.removeAt(index);
 
                   attachedPresets.remove(removed);
-                  box.delete(removed); // borra datos del preset
-                  box.put('__preset_list__', presets);
+                  dataBox.delete(removed);        
+                  listBox.put('list', presets);   
+                  
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Preset "$removed" eliminado'),
@@ -210,20 +232,19 @@ class _PresetScreenState extends State<PresetScreen> {
 
     if (newName?.isNotEmpty == true) {
       setState(() {
-        final box = Hive.box('presets');
+        final listBox = Hive.box('preset_list');
+        final dataBox = Hive.box('preset_data');
 
         final oldName = presets[index];
         presets[index] = newName!;
 
-        // mover datos del preset si existían
-        final presetData = box.get(oldName);
+        final presetData = dataBox.get(oldName);
         if (presetData != null) {
-          box.delete(oldName);
-          box.put(newName, presetData);
+          dataBox.delete(oldName);
+          dataBox.put(newName, presetData);
         }
 
-        // guardar lista actualizada
-        box.put('__preset_list__', presets);
+        listBox.put('list', presets);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -265,7 +286,6 @@ class _PresetScreenState extends State<PresetScreen> {
                             builder: (context) => EditPresetScreen(presetName: presets[index]),
                           ),
                         );
-                        _loadPresetsFromHive();
                       },
                       onLongPress: () => _showPresetOptions(index),
                     ),
