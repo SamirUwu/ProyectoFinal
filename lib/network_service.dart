@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
-class BluetoothService {
+class NetworkService {
   static Socket? _socket;
 
   static Future<void> connect() async {

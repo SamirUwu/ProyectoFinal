@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'edit_preset_screen.dart';
 import 'package:hive/hive.dart';
 import 'dart:convert'; 
-import 'bluetooth_service.dart';
+import 'network_service.dart';
 
 class PresetScreen extends StatefulWidget {
   const PresetScreen({super.key});
@@ -36,7 +36,7 @@ class _PresetScreenState extends State<PresetScreen> {
   void initState() {
     super.initState();
     _loadPresetsFromHive();
-    BluetoothService.connect();
+    NetworkService.connect();
   }
 
   void _sendPresetWithMode(String presetName, String mode) {
@@ -66,7 +66,7 @@ class _PresetScreenState extends State<PresetScreen> {
       "effects": cleanEffects,
     };
 
-        BluetoothService.sendJson(payload);
+        NetworkService.sendJson(payload);
         final jsonString = jsonEncode(payload);
         debugPrint('JSON → ESP32: $jsonString');
 
@@ -150,7 +150,6 @@ class _PresetScreenState extends State<PresetScreen> {
 
   
   void _showPresetOptions(int index) {
-    final presetName = presets[index];
 
     showModalBottomSheet(
       context: context,

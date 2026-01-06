@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'preset_screen.dart';
-import 'bluetooth_service.dart';
+import 'network_service.dart';
 
 class BluetoothScreen extends StatefulWidget {
   const BluetoothScreen({super.key});
