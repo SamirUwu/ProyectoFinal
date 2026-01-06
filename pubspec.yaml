@@ -9,12 +9,15 @@ environment:
   sdk: ^3.8.1
 
 dependencies:
-  hive: ^2.2.3
-  hive_flutter: ^1.1.0
   flutter:
-    sdk: flutter
+      sdk: flutter
+
+  flutter_reactive_ble: ^5.3.1
   flutter_bluetooth_serial: 0.4.0
 
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  
   cupertino_icons: ^1.0.8
 
 dev_dependencies:

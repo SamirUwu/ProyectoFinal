@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
 import 'preset_screen.dart';
+import 'bluetooth_service.dart';
 
 class BluetoothScreen extends StatefulWidget {
   const BluetoothScreen({super.key});
@@ -48,9 +49,11 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                       return ListTile(
                         title: Text(device.name ?? 'Sin nombre'),
                         subtitle: Text(device.address),
-                        onTap: () {
+                        onTap: () async {
+                          await BluetoothService.connect();
+
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Seleccionaste ${device.name}')),
+                            SnackBar(content: Text('Conectado a ${device.name}')),
                           );
                         },
                       );

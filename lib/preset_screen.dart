@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'edit_preset_screen.dart';
 import 'package:hive/hive.dart';
-import 'dart:convert'; // necesario para jsonEncode
-
+import 'dart:convert'; 
+import 'bluetooth_service.dart';
 
 class PresetScreen extends StatefulWidget {
   const PresetScreen({super.key});
@@ -36,51 +36,45 @@ class _PresetScreenState extends State<PresetScreen> {
   void initState() {
     super.initState();
     _loadPresetsFromHive();
+    BluetoothService.connect();
   }
 
-    void _sendToESP32() {
-    if (attachedPresets.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No hay presets anexados para enviar'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
+  void _sendPresetWithMode(String presetName, String mode) {
     final dataBox = Hive.box('preset_data');
+    final data = dataBox.get(presetName);
 
-    Map<String, Map<String, Map<String, double>>> presetsToSend = {};
-    for (var presetName in attachedPresets) {
-      final data = dataBox.get(presetName);
-      if (data != null) {
-        // hacemos copia para evitar referencias extrañas
-        presetsToSend[presetName] = Map<String, Map<String, double>>.from(data);
-      }
-    }
-
-    if (presetsToSend.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No se encontraron datos de los presets seleccionados'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+    if (data == null) {
+      debugPrint('No hay datos para $presetName');
       return;
     }
 
-    // Convertimos a JSON
-    final jsonString = jsonEncode(presetsToSend);
-    debugPrint('JSON listo para enviar a ESP32: $jsonString');
+    final Map<String, Map<String, double>> cleanEffects = {};
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Presets preparados para enviar: ${attachedPresets.join(', ')}'),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
+    data.forEach((effectName, params) {
+      final Map<String, double> cleanParams = {};
+
+      (params as Map).forEach((k, v) {
+        cleanParams[k.toString()] = (v as num).toDouble();
+      });
+
+      cleanEffects[effectName.toString()] = cleanParams;
+    });
+
+    final payload = {
+      "mode": mode,
+      "name": presetName,
+      "effects": cleanEffects,
+    };
+
+        BluetoothService.sendJson(payload);
+        final jsonString = jsonEncode(payload);
+        debugPrint('JSON → ESP32: $jsonString');
+
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Preset "$presetName" enviado ($mode)')),
+        );
+      }
 
   void _addPreset() async {
     if (presets.length >= maxPresets) {
@@ -136,13 +130,52 @@ class _PresetScreenState extends State<PresetScreen> {
       );
     }
   }
+
+  void _deletePreset(int index) {
+    setState(() {
+      final listBox = Hive.box('preset_list');
+      final dataBox = Hive.box('preset_data');
+
+      final removed = presets.removeAt(index);
+      attachedPresets.remove(removed);
+
+      dataBox.delete(removed);
+      listBox.put('list', presets);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Preset "$removed" eliminado')),
+      );
+    });
+  }
+
   
   void _showPresetOptions(int index) {
+    final presetName = presets[index];
+
     showModalBottomSheet(
       context: context,
       builder: (_) => SafeArea(
         child: Wrap(
           children: [
+            ListTile(
+              leading: const Icon(Icons.tune),
+              title: const Text('Editar efecto'),
+              onTap: () async {
+                Navigator.pop(context);
+
+                final presetName = presets[index];
+
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditPresetScreen(presetName: presetName),
+                  ),
+                );  
+
+                _sendPresetWithMode(presetName, "create");
+              },
+            ),
+
             ListTile(
               leading: const Icon(Icons.edit),
               title: const Text('Cambiar nombre'),
@@ -151,47 +184,13 @@ class _PresetScreenState extends State<PresetScreen> {
                 _renamePreset(index);
               },
             ),
+
             ListTile(
               leading: const Icon(Icons.delete),
               title: const Text('Eliminar'),
               onTap: () {
                 Navigator.pop(context);
-                setState(() {
-                  final listBox = Hive.box('preset_list');
-                  final dataBox = Hive.box('preset_data');
-
-                  final removed = presets.removeAt(index);
-
-                  attachedPresets.remove(removed);
-                  dataBox.delete(removed);        
-                  listBox.put('list', presets);   
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Preset "$removed" eliminado'),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                });
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.send),
-              title: const Text('Anexar para envío'),
-              onTap: () {
-                Navigator.pop(context);
-                setState(() {
-                  final preset = presets[index];
-                  if (!attachedPresets.contains(preset)) {
-                    attachedPresets.add(preset);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('"$preset" anexado para envío'),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                });
+                _deletePreset(index);
               },
             ),
           ],
@@ -199,6 +198,7 @@ class _PresetScreenState extends State<PresetScreen> {
       ),
     );
   }
+
 
   void _renamePreset(int index) async {
     final TextEditingController controller =
@@ -279,16 +279,21 @@ class _PresetScreenState extends State<PresetScreen> {
                   return Card(
                     child: ListTile(
                       title: Text(presets[index]),
+
                       onTap: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditPresetScreen(presetName: presets[index]),
-                          ),
-                        );
+                        final presetName = presets[index];
+                        _sendPresetWithMode(presetName, "change");
                       },
-                      onLongPress: () => _showPresetOptions(index),
+
+                      // ⚙️ Botón de engranaje
+                      trailing: IconButton(
+                        icon: const Icon(Icons.settings),
+                        onPressed: () {
+                          _showPresetOptions(index);
+                        },
+                      ),
                     ),
+
                   );
                 },
               ),
@@ -300,16 +305,6 @@ class _PresetScreenState extends State<PresetScreen> {
               label: const Text('Añadir'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurple,
-                foregroundColor: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: _sendToESP32,
-              icon: const Icon(Icons.send),
-              label: const Text('Enviar a ESP32'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
               ),
             ),
