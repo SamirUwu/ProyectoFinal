@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'edit_effect_screen.dart';
 
+const List<String> availableEffects = [
+  'Delay',
+  'Overdrive',
+  'Distortion',
+  'Chorus',
+  'Flanger',
+  'Wah',
+];
 class EditPresetScreen extends StatefulWidget {
   final String presetName;
   final Map<String, double>? initialValues;
@@ -36,6 +44,76 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
       );
     }
     //debugPrint('PRESET CARGADO: $presetData');
+  }
+  void _confirmDeleteEffect(String effect) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Eliminar efecto'),
+        content: Text('¿Seguro que quieres borrar "$effect"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                presetData.remove(effect);
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Borrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _onReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex--;
+
+      final keys = presetData.keys.toList();
+      final item = keys.removeAt(oldIndex);
+      keys.insert(newIndex, item);
+
+      final newMap = <String, Map<String, double>>{};
+      for (final k in keys) {
+        newMap[k] = presetData[k]!;
+      }
+      presetData = newMap;
+    });
+  }
+
+  void _showAddEffectDialog() {
+    final remaining = availableEffects
+        .where((e) => !presetData.containsKey(e))
+        .toList();
+
+    if (remaining.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Todos los efectos ya están añadidos')),
+      );
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      builder: (_) => ListView(
+        children: remaining.map((effect) {
+          return ListTile(
+            title: Text(effect),
+            onTap: () {
+              Navigator.pop(context);
+              setState(() {
+                presetData[effect] = {};   
+              });
+            },
+          );
+        }).toList(),
+      ),
+    );
   }
 
   @override
@@ -78,54 +156,73 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
               "Preset: ${widget.presetName}",
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
-            _buildEffectBlock(context, "Delay"),
-            const SizedBox(height: 10),
-            _buildEffectBlock(context, "Overdrive"),
-            const SizedBox(height: 10),
-            _buildEffectBlock(context, "Distortion"),
-            const SizedBox(height: 10),
-            _buildEffectBlock(context, "Chorus"),
-            const SizedBox(height: 10),
-            _buildEffectBlock(context, "Flanger"),
-            const SizedBox(height: 10),
-            _buildEffectBlock(context, "Wah"),
-          ],
+            Expanded(
+              child: ReorderableListView(
+                onReorder: _onReorder,
+                children: presetData.keys.map((effect) {
+                  return Padding(
+                    key: ValueKey(effect),
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _buildEffectBlock(context, effect),
+                  );
+                }).toList(),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _showAddEffectDialog,
+              icon: const Icon(Icons.add),
+              label: const Text('Añadir efecto'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.deepPurple,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],  
         ),
       ),
     );
   }
 
   Widget _buildEffectBlock(BuildContext context, String title) {
-    return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push<Map<String, double>>(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EditEffectScreen(
-              effectName: title,
-              initialValues: presetData[title],
+    return Container(
+      height: 80,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 128, 92, 194),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () async {
+                final result = await Navigator.push<Map<String, double>>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditEffectScreen(
+                      effectName: title,
+                      initialValues: presetData[title],
+                    ),
+                  ),
+                );
+
+                if (result != null) {
+                  setState(() {
+                    presetData[title] = result;
+                  });
+                }
+              },
+              child: Text(title, style: const TextStyle(fontSize: 18)),
             ),
           ),
-        );
 
-        if (result != null) {
-          //debugPrint('VALORES DEVUELTOS DE $title: $result');
-          setState(() {
-            presetData[title] = result;
-          });
-          //debugPrint('PRESET DATA ACTUALIZADO: $presetData');
-        }
-      },
-      child: Container(
-        height: 80,
-        padding: const EdgeInsets.all(16),
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color.fromARGB(255, 128, 92, 194),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Text(title, style: const TextStyle(fontSize: 18)),
+          IconButton(
+            icon: const Icon(Icons.delete, color: Colors.white),
+            onPressed: () => _confirmDeleteEffect(title),
+          ),
+        ],
       ),
     );
   }

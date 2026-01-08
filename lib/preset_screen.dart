@@ -283,7 +283,6 @@ class _PresetScreenState extends State<PresetScreen> {
                         _sendPresetWithMode(presetName, "change");
                       },
 
-                      // ⚙️ Botón de engranaje
                       trailing: IconButton(
                         icon: const Icon(Icons.settings),
                         onPressed: () {
