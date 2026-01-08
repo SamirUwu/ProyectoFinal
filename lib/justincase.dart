@@ -50,7 +50,7 @@ class _BluetoothScreenState extends State<BluetoothScreen> {
                         title: Text(device.name ?? 'Sin nombre'),
                         subtitle: Text(device.address),
                         onTap: () async {
-                          await BluetoothService.connect();
+                          await NetworkService.connect();
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Conectado a ${device.name}')),

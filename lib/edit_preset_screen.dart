@@ -139,7 +139,7 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
         padding: const EdgeInsets.all(16),
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Colors.deepPurple[100],
+          color: const Color.fromARGB(255, 128, 92, 194),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(title, style: const TextStyle(fontSize: 18)),

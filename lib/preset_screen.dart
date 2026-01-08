@@ -3,6 +3,7 @@ import 'edit_preset_screen.dart';
 import 'package:hive/hive.dart';
 import 'dart:convert'; 
 import 'network_service.dart';
+import 'main.dart';
 
 class PresetScreen extends StatefulWidget {
   const PresetScreen({super.key});
@@ -27,7 +28,6 @@ class _PresetScreenState extends State<PresetScreen> {
           ..addAll(List<String>.from(savedPresets));
       });
     }
-
     //debugPrint('PRESETS EN MEMORIA: $presets');
   }
 
@@ -70,9 +70,8 @@ class _PresetScreenState extends State<PresetScreen> {
         final jsonString = jsonEncode(payload);
         debugPrint('JSON → ESP32: $jsonString');
 
-
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Preset "$presetName" enviado ($mode)')),
+          SnackBar(content: Text('Preset "$presetName" enviado')),
         );
       }
 
@@ -311,10 +310,37 @@ class _PresetScreenState extends State<PresetScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // Futuro: más opciones
-        },
         child: const Icon(Icons.settings),
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            builder: (context) {
+              final appState = MyApp.of(context);
+
+              return Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Modo oscuro',
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    Switch(
+                      value: appState.isDark,
+                      onChanged: (value) {
+                        appState.toggleTheme(value);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
       ),
     );
   }
