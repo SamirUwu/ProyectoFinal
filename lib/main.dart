@@ -7,12 +7,15 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('preset_list'); 
   await Hive.openBox('preset_data');
-  
-  runApp(const MyApp());
+  var settingsBox = Hive.box('preset_data');
+  bool savedTheme = settingsBox.get('darkMode', defaultValue: false);
+  runApp(MyApp(initialDark: savedTheme));
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  final bool initialDark;
+
+  const MyApp({super.key, required this.initialDark});
 
   static _MyAppState of(BuildContext context) =>
       context.findAncestorStateOfType<_MyAppState>()!;
@@ -22,10 +25,17 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  bool isDark = false;
+  late bool isDark;
+
+  @override
+  void initState() {
+    super.initState();
+    isDark = widget.initialDark;
+  }
 
   void toggleTheme(bool value) {
     setState(() => isDark = value);
+    Hive.box('preset_data').put('darkMode', value);
   }
 
   @override

@@ -68,29 +68,6 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
             Navigator.pop(context);
           },
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              final box = Hive.box('preset_data');
-
-              //debugPrint('ANTES DE GUARDAR: ${box.toMap()}');
-
-              box.put(widget.presetName, {
-                for (final entry in presetData.entries)
-                  entry.key: Map<String, double>.from(entry.value)
-              });
-              //debugPrint('DESPUÉS DE GUARDAR: ${box.toMap()}');
-
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Preset guardado')),
-              );
-            },
-            child: const Text(
-              "Guardar",
-              style: TextStyle(color: Colors.white),
-            ),
-          )
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -101,12 +78,18 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
               "Preset: ${widget.presetName}",
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _buildEffectBlock(context, "Delay"),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _buildEffectBlock(context, "Overdrive"),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             _buildEffectBlock(context, "Distortion"),
+            const SizedBox(height: 10),
+            _buildEffectBlock(context, "Chorus"),
+            const SizedBox(height: 10),
+            _buildEffectBlock(context, "Flanger"),
+            const SizedBox(height: 10),
+            _buildEffectBlock(context, "Wah"),
           ],
         ),
       ),
