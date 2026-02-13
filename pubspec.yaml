@@ -11,7 +11,7 @@ environment:
 dependencies:
   flutter:
       sdk: flutter
-
+  multicast_dns: ^0.3.2
   flutter_reactive_ble: ^5.3.1
   flutter_bluetooth_serial: 0.4.0
 
