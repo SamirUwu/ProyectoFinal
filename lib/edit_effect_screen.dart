@@ -123,7 +123,7 @@ class _EditEffectScreenState extends State<EditEffectScreen> {
                   Navigator.pop(context, values);
                 },
                 child: const Text(
-                  'APPLY',
+                  'APLICAR',
                   style: TextStyle(fontSize: 18),
                 ),
               ),

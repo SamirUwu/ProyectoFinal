@@ -222,6 +222,7 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
             icon: const Icon(Icons.delete, color: Colors.white),
             onPressed: () => _confirmDeleteEffect(title),
           ),
+          const Icon(Icons.drag_handle, color: Colors.white),
         ],
       ),
     );

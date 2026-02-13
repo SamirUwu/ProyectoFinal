@@ -6,9 +6,16 @@ plugins {
 }
 
 android {
-    ndkVersion = "27.0.12077973"
     namespace = "com.example.flutter_application_2"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.example.flutter_application_2"
+        minSdk = flutter.minSdkVersion
+        targetSdk = 36
+        versionCode = 1
+        versionName = "1.0"
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -16,15 +23,7 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
-
-    defaultConfig {
-        applicationId = "com.example.flutter_application_2"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        jvmTarget = "11"
     }
 
     buildTypes {
@@ -33,6 +32,8 @@ android {
         }
     }
 }
+
+
 
 
 flutter {
