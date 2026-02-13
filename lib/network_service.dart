@@ -5,8 +5,23 @@ import 'package:multicast_dns/multicast_dns.dart';
 
 class NetworkService {
   static Socket? _socket;
+  static bool _connecting = false;
 
-  static Future<void> connect() async {
+  static Future<void> startAutoConnect() async {
+    if (_connecting) return;
+
+    _connecting = true;
+
+    while (true) {
+      if (_socket == null) {
+        await _connectOnce();
+      }
+
+      await Future.delayed(const Duration(seconds: 3));
+    }
+  }
+
+  static Future<void> _connectOnce() async {
     try {
       debugPrint("🔎 Buscando servidor...");
 
@@ -52,8 +67,27 @@ class NetworkService {
       );
 
       debugPrint("🟢 Conectado correctamente");
+      _socket!.listen(
+      (_) {},
+
+      onDone: () {
+        debugPrint("🔌 Conexión cerrada");
+        _socket?.destroy();
+        _socket = null;
+      },
+
+      onError: (error) {
+        debugPrint("💀 Error de socket: $error");
+        _socket?.destroy();
+        _socket = null;
+      },
+
+      cancelOnError: true,
+    );
+
     } catch (e) {
       debugPrint("🔴 Error de conexión: $e");
+      _socket = null;
     }
   }
 
@@ -63,9 +97,15 @@ class NetworkService {
       return;
     }
 
-    final message = jsonEncode(data);
-    debugPrint("📤 APP → $message");
+    try {
+      final message = jsonEncode(data);
+      debugPrint("📤 APP → $message");
 
-    _socket!.write("$message\n");
+      _socket!.write("$message\n");
+
+    } catch (e) {
+      debugPrint("💀 Socket muerto, reconectando...");
+      _socket = null;
+    }
   }
 }

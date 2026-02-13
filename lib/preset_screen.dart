@@ -36,7 +36,7 @@ class _PresetScreenState extends State<PresetScreen> {
   void initState() {
     super.initState();
     _loadPresetsFromHive();
-    NetworkService.connect();
+    //NetworkService.connect();
   }
 
   void _sendPresetWithMode(String presetName, String mode) {

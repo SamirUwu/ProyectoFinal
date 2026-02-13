@@ -1,14 +1,48 @@
 import socket
 from zeroconf import ServiceInfo, Zeroconf
 import json
+import queue
+import threading
+import time
+
 
 PORT = 5000
 HOST = "0.0.0.0"
+labview = None
 
 temp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-temp_sock.connect(("8.8.8.8", 80)) # no envía nada realmente
+temp_sock.connect(("8.8.8.8", 80)) 
 LOCAL_IP = temp_sock.getsockname()[0]
 temp_sock.close()
+
+def connect_labview():
+    while True:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect(("127.0.0.1", 6000))
+            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            print("🟡 Conectado a LabVIEW")
+            return sock
+        except:
+            print("Esperando LabVIEW...")
+            time.sleep(15)
+            n
+def labview_connector():
+    global labview
+
+    while True:
+        try:
+            labview = connect_labview()
+
+            # Espera hasta que se caiga
+            while True:
+                time.sleep(1)
+                if labview is None:
+                    break
+
+        except:
+            labview = None
+
 
 print("IP local:", LOCAL_IP)
 
@@ -39,21 +73,33 @@ server.listen(5)
 print("🟢 Esperando conexión...")
 
 try:
-    conn, addr = server.accept()
-    print(f"🔵 Conectado desde {addr}")
+    threading.Thread(target=labview_connector, daemon=True).start()
 
     while True:
-        data = conn.recv(4096)
+        conn, addr = server.accept()
+        print(f"🔵 Conectado desde {addr}")
 
-        if not data:
-            break
+        while True:
+            data = conn.recv(4096)
 
-        msg = data.decode().strip()
+            if not data:
+                print("Cliente desconectado")
+                break
 
-        print("📦 JSON recibido:", msg)
+            msg = data.decode().strip()
+            print("📦 JSON recibido:", msg)
+
+            if labview:
+                try:
+                    labview.sendall((msg + "\n").encode())
+
+                except:
+                    print("LabVIEW se cayó, reconectando...")
+                    labview = None
 
 except KeyboardInterrupt:
     print("Apagando servidor...")
+
 
 finally:
     zeroconf.unregister_service(info)
