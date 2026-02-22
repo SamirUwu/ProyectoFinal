@@ -48,32 +48,41 @@ class _PresetScreenState extends State<PresetScreen> {
       return;
     }
 
-    final Map<String, Map<String, double>> cleanEffects = {};
+    final List<Map<String, dynamic>> effectsList = [];
 
     data.forEach((effectName, params) {
       final Map<String, double> cleanParams = {};
-
       (params as Map).forEach((k, v) {
         cleanParams[k.toString()] = (v as num).toDouble();
       });
 
-      cleanEffects[effectName.toString()] = cleanParams;
+      effectsList.add({
+        "type": effectName.toString(),
+        "enabled": true,
+        "params": cleanParams,
+      });
     });
 
     final payload = {
-      "mode": mode,
+      "command": mode == "change" ? "apply_preset" : "save_preset",
       "name": presetName,
-      "effects": cleanEffects,
+      "effects": effectsList,
     };
 
-        NetworkService.sendJson(payload);
-        final jsonString = jsonEncode(payload);
-        debugPrint('JSON → ESP32: $jsonString');
+    NetworkService.sendJson(payload);
+    final jsonString = jsonEncode(payload);
+    debugPrint('JSON → RPI4: $jsonString');
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Preset "$presetName" enviado')),
-        );
-      }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          mode == "change"
+              ? 'Preset "$presetName" aplicado'
+              : 'Preset "$presetName" guardado',
+        ),
+      ),
+    );
+  }
 
   void _addPreset() async {
     if (presets.length >= maxPresets) {
