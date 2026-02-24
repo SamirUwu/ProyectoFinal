@@ -22,6 +22,20 @@ class MainWindow(QWidget):
         self.setLayout(self.main_layout)
 
         self.left_layout = QVBoxLayout()
+
+        # TITULO
+        self.title_label = QLabel("MultiFX Processor")
+        self.left_layout.addWidget(self.title_label)
+        
+        # PRESET DROPDOWN
+        self.preset_dropdown = QComboBox()
+        self.preset_dropdown.addItems(["Preset 1", "Preset 2", "Preset 3"])
+        self.left_layout.addWidget(self.preset_dropdown)
+        
+        # LISTA DE EFECTOS
+        self.effects_list = QListWidget()
+        self.left_layout.addWidget(self.effects_list)
+        
         self.right_layout = QVBoxLayout()
 
         self.main_layout.addLayout(self.left_layout, 1)
