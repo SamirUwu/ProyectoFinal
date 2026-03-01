@@ -1,14 +1,14 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QSlider, QListWidgetItem 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 
 class EffectWidget(QWidget):
-    def __init__(self, effect_data, update_callback):
+    def __init__(self, effect_data):
         super().__init__()
 
         self.list_item = None
         
         self.effect_data = effect_data
-        self.update_callback = update_callback
+        self.effect_id = effect_data["id"]
         self.expanded = False
 
         self.main_layout = QVBoxLayout()
@@ -57,7 +57,7 @@ class EffectWidget(QWidget):
 
     def update_param(self, param, value, label):
         normalized = value / 100
-        self.effect_data["params"][param] = normalized
-        label.setText(f"{param}: {round(normalized, 2)}") 
-        print("update_param called")
-        self.update_callback()
+        label.setText(f"{param}: {round(normalized, 2)}")
+        self.param_changed.emit(self.effect_id, param, normalized)
+
+    param_changed = pyqtSignal(str, str, float)

@@ -4,6 +4,8 @@ import pyqtgraph as pg
 import json
 
 from ui.effect_widget import EffectWidget
+from core.preset_model import PresetModel
+
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QLabel, QComboBox, QListWidget, QListWidgetItem 
 from PyQt6.QtCore import QTimer, Qt
 
@@ -37,13 +39,23 @@ class MainWindow(QWidget):
         self.effects_list = QListWidget()
         self.effects_list.setDragDropMode(QListWidget.DragDropMode.InternalMove)
         self.effects_list.model().rowsMoved.connect(self.update_effect_order)
-        self.effects = [
-            {"type": "Distortion", "enabled": True, "params": {"GAIN": 0.5, "TONE": 0.5, "OUTPUT": 0.5}},
-            {"type": "Delay", "enabled": True, "params": {"TIME": 0.5, "FEEDBACK": 0.3, "MIX": 0.2}},
-            {"type": "Wah", "enabled": True, "params": {}},
-            {"type": "Flanger", "enabled": True, "params": {}},
+        self.model = PresetModel("Preset1")
+
+        initial_effects = [
+            {"id": "fx_1", "type": "Distortion", "enabled": True,
+            "params": {"GAIN": 0.5, "TONE": 0.5, "OUTPUT": 0.5}},
+
+            {"id": "fx_2", "type": "Delay", "enabled": True,
+            "params": {"TIME": 0.5, "FEEDBACK": 0.3, "MIX": 0.2}},
+
+            {"id": "fx_3", "type": "Wah", "enabled": True,
+            "params": {}},
+
+            {"id": "fx_4", "type": "Flanger", "enabled": True,
+            "params": {}},
         ]
-        self.preset_name = "Preset1"
+
+        self.model.set_effects(initial_effects)
 
         #Cargar efectos
         self.load_effects()
@@ -103,9 +115,8 @@ class MainWindow(QWidget):
             widget = self.effects_list.itemWidget(item)
             new_order.append(widget.effect_data)
 
-        self.effects = new_order
-        print("Order updated")
-        self.generate_json()
+        self.model.update_order(new_order)
+        print(self.model.to_json())
         
     #Presionar efecto
     def toggle_effect(self):
@@ -118,25 +129,21 @@ class MainWindow(QWidget):
     def load_effects(self):
         self.effects_list.clear()
         
-        for effect in self.effects:
+        for effect in self.model.effects:
             item = QListWidgetItem()
-            widget = EffectWidget(effect, self.generate_json)
-
+            widget = EffectWidget(effect)
             widget.list_item = item
             
             item.setSizeHint(widget.sizeHint())
+
+            widget.param_changed.connect(self.handle_param_change)
             self.effects_list.addItem(item)
             self.effects_list.setItemWidget(item, widget)
     
     #Generación del Json
     def generate_json(self):
-        payload = {
-            "command": "apply_preset",
-            "name": self.preset_name,
-            "effects": self.effects   
-        }
         print("JSON ready for C++: ")
-        print(json.dumps(payload, indent=2))
+        print(self.model.to_json())
 
     #Print de valor del Drive
     def update_drive(self, value):
@@ -158,3 +165,11 @@ class MainWindow(QWidget):
         self.curve_post.setData(processed_sig)
 
         self.t += 0.05
+
+    def handle_param_change(self, effect_id, param, value):
+        print("MainWindow updating model")
+
+        self.model.update_param(effect_id, param, value)
+
+        print("JSON ready for C++:")
+        print(self.model.to_json())
