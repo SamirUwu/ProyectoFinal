@@ -21,8 +21,23 @@ class PresetModel:
         self.effects[effect_index]["enabled"] = state
 
     def load_from_json(self, data):
+
         self.name = data.get("name", self.name)
-        self.effects = data.get("effects", [])
+
+        incoming_effects = data.get("effects", [])
+
+        self.effects = []
+
+        for index, effect in enumerate(incoming_effects):
+
+            effect_with_id = {
+                "id": index,  # 
+                "type": effect["type"],
+                "enabled": effect.get("enabled", True),
+                "params": effect.get("params", {})
+            }
+
+            self.effects.append(effect_with_id)
 
     def to_json(self):
         payload = {

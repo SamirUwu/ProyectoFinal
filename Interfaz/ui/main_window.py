@@ -48,10 +48,10 @@ class MainWindow(QWidget):
             "params": {"TIME": 0.5, "FEEDBACK": 0.3, "MIX": 0.2}},
 
             {"id": "fx_3", "type": "Wah", "enabled": True,
-            "params": {}},
+            "params": {"FREQ": 0.5, "Q": 0.3, "LEVEL": 0.2}},
 
             {"id": "fx_4", "type": "Flanger", "enabled": True,
-            "params": {}},
+            "params": {"RATE": 0.5, "DEPTH": 0.3, "FEEDBACK": 0.2, "MIX": 0.5}},
         ]
 
         self.model.set_effects(initial_effects)

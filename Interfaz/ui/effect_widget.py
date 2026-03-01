@@ -60,4 +60,4 @@ class EffectWidget(QWidget):
         label.setText(f"{param}: {round(normalized, 2)}")
         self.param_changed.emit(self.effect_id, param, normalized)
 
-    param_changed = pyqtSignal(str, str, float)
+    param_changed = pyqtSignal(int, str, float)
