@@ -121,9 +121,10 @@ class MainWindow(QWidget):
         for effect in self.effects:
             item = QListWidgetItem()
             widget = EffectWidget(effect, self.generate_json)
+
+            widget.list_item = item
             
             item.setSizeHint(widget.sizeHint())
-
             self.effects_list.addItem(item)
             self.effects_list.setItemWidget(item, widget)
     

@@ -1,9 +1,11 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QSlider
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QPushButton, QLabel, QSlider, QListWidgetItem 
 from PyQt6.QtCore import Qt
 
 class EffectWidget(QWidget):
     def __init__(self, effect_data, update_callback):
         super().__init__()
+
+        self.list_item = None
         
         self.effect_data = effect_data
         self.update_callback = update_callback
@@ -47,12 +49,15 @@ class EffectWidget(QWidget):
         self.expanded = not self.expanded
         self.params_Widget.setVisible(self.expanded)
 
-        arrow = "▲" if self.expanded else "▼" 
+        arrow = "▲" if self.expanded else "▼"
         self.header_button.setText(self.effect_data["type"] + " " + arrow)
+
+        if hasattr(self, "list_item"):
+            self.list_item.setSizeHint(self.sizeHint())
 
     def update_param(self, param, value, label):
         normalized = value / 100
         self.effect_data["params"][param] = normalized
         label.setText(f"{param}: {round(normalized, 2)}") 
-
+        print("update_param called")
         self.update_callback()
