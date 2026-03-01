@@ -5,6 +5,8 @@ import json
 
 from ui.effect_widget import EffectWidget
 from core.preset_model import PresetModel
+from server.receiver import TcpServer
+
 
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QSlider, QLabel, QComboBox, QListWidget, QListWidgetItem 
 from PyQt6.QtCore import QTimer, Qt
@@ -12,7 +14,7 @@ from PyQt6.QtCore import QTimer, Qt
 class MainWindow(QWidget):
 
     def __init__(self):
-        super().__init__()
+        super().__init__()  
 
         self.setWindowTitle("Audio Interface")
         self.t = 0
@@ -82,7 +84,10 @@ class MainWindow(QWidget):
         self.timer.timeout.connect(self.sim_signal)
         self.timer.start(80) #Elegir velocidad en la que se generan los puntos
 
-        
+        self.server = TcpServer()
+        self.server.json_received.connect(self.handle_remote_json)
+        self.server.start()
+
     def update_effect_order(self, *args):
         new_order = []
 
@@ -93,7 +98,16 @@ class MainWindow(QWidget):
 
         self.model.update_order(new_order)
         print(self.model.to_json())
-        
+
+    def handle_remote_json(self,data):
+        print("Actualizando desde el celular")
+
+        self.model.load_from_json(data)
+
+        self.load_effects()
+
+        print("Nuevo estado: ")
+        print(self.model.to_json())
 
     
     #Cargar efectos

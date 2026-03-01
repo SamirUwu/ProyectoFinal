@@ -1,8 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 from ui.main_window import MainWindow
-
-
+from server.receiver import TcpServer
 
 app = QApplication(sys.argv)
 window = MainWindow()

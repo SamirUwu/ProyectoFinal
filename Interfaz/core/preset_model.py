@@ -20,6 +20,10 @@ class PresetModel:
     def toggle_effect(self, effect_index, state):
         self.effects[effect_index]["enabled"] = state
 
+    def load_from_json(self, data):
+        self.name = data.get("name", self.name)
+        self.effects = data.get("effects", [])
+
     def to_json(self):
         payload = {
             "command": "apply_preset",
