@@ -77,6 +77,15 @@ class MainWindow(QWidget):
 
         self.main_layout.addLayout(self.left_layout, 1)
         self.main_layout.addLayout(self.right_layout, 2)
+        
+        # Botón toggle
+        self.toggle_fft_btn = QPushButton("Show FFT")
+        self.toggle_fft_btn.setCheckable(True)
+        self.toggle_fft_btn.clicked.connect(self.toggle_fft)
+        self.right_layout.addWidget(self.toggle_fft_btn)
+        
+        # Estado inicial
+        self.show_fft = False
 
         #Plot de las señales
         self.plot_pre = pg.PlotWidget(title="Pre Effect Signal")
@@ -154,8 +163,23 @@ class MainWindow(QWidget):
             self.signal_buffer.append(value)
     #Recepción de señales
     def sim_signal(self):
-        self.curve_pre.setData(list(self.pre_buffer))
-        self.curve_post.setData(list(self.signal_buffer))
+        if not self.show_fft:
+            # Graficar señal en el tiempo
+            self.curve_pre.setData(list(self.pre_buffer))
+            self.curve_post.setData(list(self.signal_buffer))
+        else:
+            # Graficar FFT de la señal post-efecto
+            y = np.array(self.signal_buffer)
+            N = len(y)
+            # FFT
+            Y = np.fft.rfft(y)
+            Y_mag = np.abs(Y)
+            # Frecuencia
+            freqs = np.fft.rfftfreq(N, d=1.0/SAMPLE_RATE)
+    
+            self.curve_post.setData(freqs, Y_mag)
+            # Opcional: dejar pre como señal en tiempo
+            self.curve_pre.setData(list(self.pre_buffer))
 
     def handle_param_change(self, effect_id, param, value):
         print("MainWindow updating model")
@@ -164,3 +188,10 @@ class MainWindow(QWidget):
 
         print("JSON ready for C++:")
         print(self.model.to_json())
+        
+    def toggle_fft(self):
+        self.show_fft = self.toggle_fft_btn.isChecked()
+        if self.show_fft:
+            self.toggle_fft_btn.setText("Show Time")
+        else:
+            self.toggle_fft_btn.setText("Show FFT")
