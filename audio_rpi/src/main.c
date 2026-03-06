@@ -40,12 +40,12 @@ int main()
     
     int i = 0;
     while (1){
-        int n = socket_receive(json_buffer, sizeof(json_buffer));
+        int n = socket_receive(json_buffer, sizeof(json_buffer)-1);
+        json_buffer[n] = '\0';
         
     if (n > 0){
 
         printf("JSON recibido:\n%s\n", json_buffer);
-        memset(json_buffer, 0, sizeof(json_buffer));
 
         char *p;
 
@@ -65,6 +65,8 @@ int main()
         }
 
         printf("Parsed OD -> gain:%f tone:%f output:%f\n", gain, tone, output);
+
+        memset(json_buffer, 0, sizeof(json_buffer));
     }
     
         float input = (sinf(2.0f * PI * 440.0f * i / SAMPLE_RATE) > 0) ? 1.0f : -1.0f;  
