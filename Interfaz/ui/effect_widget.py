@@ -66,6 +66,7 @@ class EffectWidget(QWidget):
         "RATE": (0.1, 10, "Hz"),     # Hz
         "DEPTH": (0, 1, ""),
 
+        "SEMITONES": (-12, 12, "st")
     }
 
     def toggle_expand(self):
