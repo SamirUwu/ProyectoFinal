@@ -40,7 +40,7 @@ class SocketReceiver(QObject):
                 if not packet:
                     return None, None
                 data += packet
-            pre, post = struct.unpack('ff', data)
+            pre, post = struct.unpack('<ff', data)
             return pre, post
 
         try:
@@ -49,6 +49,7 @@ class SocketReceiver(QObject):
                 if pre is None:
                     time.sleep(0.05)
                     continue
+                print("audio:", pre, post)
                 self.pre_received.emit(pre)
                 self.post_received.emit(post)
         finally:
