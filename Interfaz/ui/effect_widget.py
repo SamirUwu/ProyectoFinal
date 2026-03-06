@@ -20,6 +20,11 @@ class EffectWidget(QWidget):
         self.header_button.clicked.connect(self.toggle_expand)
         self.main_layout.addWidget(self.header_button)
 
+        #Boton para borrar efectos
+        self.delete_button = QPushButton("Delete")
+        self.delete_button.clicked.connect(self.delete_button)
+        self.main_layout.addWidget(self.delete_button)
+
         #Parametros
         self.params_Widget = QWidget()
         self.params_Layout = QVBoxLayout()
@@ -68,6 +73,9 @@ class EffectWidget(QWidget):
 
         "SEMITONES": (-12, 12, "st")
     }
+    
+    def delete_self(self):
+        self.delete_requested.emit(self.effect_id)
 
     def toggle_expand(self):
         self.expanded = not self.expanded
@@ -90,3 +98,4 @@ class EffectWidget(QWidget):
         self.param_changed.emit(self.effect_id, param, real_value)
 
     param_changed = pyqtSignal(str, str, float)
+    delete_requested = pyqtSignal(str)

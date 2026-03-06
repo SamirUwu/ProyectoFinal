@@ -41,10 +41,21 @@ class MainWindow(QWidget):
         self.title_label = QLabel("MultiFX Processor")
         self.left_layout.addWidget(self.title_label)
         
-        #Dropdown
+        #Presets Dropdown
         self.preset_dropdown = QComboBox()
         self.preset_dropdown.addItems(["Preset 1", "Preset 2", "Preset 3"])
         self.left_layout.addWidget(self.preset_dropdown)
+
+        #Effects Dropdown
+        self.add_effect_box = QComboBox()
+        self.add_effect_box.addItems(self.available_effects)
+
+        self.add_effect_btn = QPushButton("Add Effect")
+        self.add_effect_btn.clicked.connect(self.add_effect_btn)
+
+        self.left_layout.addWidget(self.add_effect_box)
+        self.left_layout.addWidget(self.add_effect_btn)
+
         
         #Lista de efectos
         self.effects_list = QListWidget()
@@ -73,6 +84,16 @@ class MainWindow(QWidget):
         ]
 
         self.model.set_effects(initial_effects)
+
+        #Efectos Disponibles
+        self.available_effects = [
+            "Overdrive",
+            "Delay",
+            "Wah",
+            "Flanger",
+            "Chorus",
+            "PitchShifter"
+        ]
 
         #Cargar efectos
         self.load_effects()
@@ -136,6 +157,40 @@ class MainWindow(QWidget):
         print("Nuevo estado: ")
         print(self.model.to_json())
 
+    #Añadir efectos logic
+    def add_effect(self):
+        if len(self.model.effects) >= 4:
+            print("Max 4 effects per parameter")
+            return
+        effect_type = self.add_effect_box.currentText()
+
+        new_id = f"fx_{len(self.model.effects)+1}"
+
+        effect = {
+            "id": new_id,
+            "type": effect_type,
+            "enabled": True,
+            "params": self.default_params(effect_type)
+        }
+
+        self.model.effects.append(effect)
+        self.load_effects()
+
+        json_data = self.model.to_json()
+        self.receiver.send_json(json_data)
+
+    def remove_effect(self, effect_id):
+
+        print("Removing effect:", effect_id)
+
+        self.model.effects = [
+            e for e in self.model.effects if e["id"] != effect_id
+        ]
+
+        self.load_effects()
+
+        json_data = self.model.to_json()
+        self.receiver.send_json(json_data)        
     
     #Cargar efectos
     def load_effects(self):
@@ -149,14 +204,28 @@ class MainWindow(QWidget):
             item.setSizeHint(widget.sizeHint())
 
             widget.param_changed.connect(self.handle_param_change)
+            widget.delete_requested.connect(self.remove_effect)
+
             self.effects_list.addItem(item)
             self.effects_list.setItemWidget(item, widget)
+
+    def default_params(self, effect_type):
+
+        defaults = {
+            "Overdrive": {"GAIN":0.5,"TONE":0.5,"OUTPUT":0.5},
+            "Delay": {"TIME":0.5,"FEEDBACK":0.3,"MIX":0.2},
+            "Wah": {"FREQ":0.5,"Q":0.3,"LEVEL":0.2},
+            "Flanger": {"RATE":0.5,"DEPTH":0.3,"FEEDBACK":0.2,"MIX":0.5},
+            "Chorus": {"RATE":0.5,"DEPTH":0.5,"MIX":0.5},
+            "PitchShifter": {"SEMITONES":0.0,"MIX":0.5}
+        }
+
+        return defaults[effect_type]
     
     #Generación del Json
     def generate_json(self):
         print("JSON ready for C++: ")
         print(self.model.to_json())
-
 
     def update_buffer(self, value):
         self.signal_buffer.append(value)
