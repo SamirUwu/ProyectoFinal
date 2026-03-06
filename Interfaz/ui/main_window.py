@@ -162,7 +162,6 @@ class MainWindow(QWidget):
 
     # Recepción de señales
     def sim_signal(self):
-        # Eje X separado
         x_pre = np.arange(len(self.pre_buffer))
         x_post = np.arange(len(self.signal_buffer))
 

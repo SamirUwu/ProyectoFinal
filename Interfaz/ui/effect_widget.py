@@ -26,13 +26,18 @@ class EffectWidget(QWidget):
         self.params_Widget.setLayout(self.params_Layout)
         self.sliders = {}
 
+
         #Sliders
         for param, value in effect_data["params"].items():
             label = QLabel(f"{param}: {value}")
+            min_val, max_val = self.PARAM_RANGES.get(param, (0, 1))
+
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setMinimum(0)
             slider.setMaximum(100)
-            slider.setValue(int(value * 100))
+
+            slider_value = int((value - min_val) / (max_val - min_val) * 100)
+            slider.setValue(slider_value)
 
             slider.valueChanged.connect(
                 lambda val, p=param, l=label: self.update_param(p, val, l)
@@ -45,6 +50,26 @@ class EffectWidget(QWidget):
         self.main_layout.addWidget(self.params_Widget)
         self.params_Widget.setVisible(False)
 
+    PARAM_RANGES= {
+        "GAIN": (0, 1),
+        "TONE": (0, 1),
+        "OUTPUT": (0, 1),
+
+        "TIME": (1, 1000, "ms"),     # ms
+        "FEEDBACK": (0, 0.95),
+        "MIX": (0, 1),
+
+        "FREQ": (300, 2000, "Hz"),   # Hz
+        "Q": (0.1, 10),
+        "LEVEL": (0, 1),
+
+        "RATE": (0.1, 10, "Hz"),     # Hz
+        "DEPTH": (0, 1),
+        "FEEDBACK": (0, 0.95),
+        "MIX": (0, 1)
+
+    }
+
     def toggle_expand(self):
         self.expanded = not self.expanded
         self.params_Widget.setVisible(self.expanded)
@@ -56,8 +81,13 @@ class EffectWidget(QWidget):
             self.list_item.setSizeHint(self.sizeHint())
 
     def update_param(self, param, value, label):
-        normalized = value / 100
-        label.setText(f"{param}: {round(normalized, 2)}")
-        self.param_changed.emit(self.effect_id, param, normalized)
+
+        min_val, max_val = self.PARAM_RANGES.get(param, (0, 1))
+
+        real_value = min_val + (value / 100) * (max_val - min_val)
+
+        label.setText(f"{param}: {round(real_value, 2)}")
+
+        self.param_changed.emit(self.effect_id, param, real_value)
 
     param_changed = pyqtSignal(int, str, float)
