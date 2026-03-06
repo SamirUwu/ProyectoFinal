@@ -21,7 +21,7 @@ int main()
     Delay_init(&delay, 20.0f, 0.5f, 0.4f);
 
     Overdrive od;
-    Overdrive_init(&od, 3.0f, 0.7f, 0.9f);
+    Overdrive_init(&od, 0.0f, 0.0f, 0.0f);
 
     Wah wah;
     Wah_init(&wah, 2.0f, 3.0f, 0.9f);
