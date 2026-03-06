@@ -53,7 +53,7 @@ int main()
             p = strchr(p, ':');   // buscar los :
             if (p) {
                 sscanf(p+1, "%f", &gain);
-                od.gain = gain * 10.0f;
+                od.gain = 1.0f + gain * 20.0f;
             }
         }
 
