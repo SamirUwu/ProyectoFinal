@@ -13,6 +13,7 @@
 
 #define SAMPLE_RATE 44100
 char json_buffer[4096];
+float gain, tone, output;
 
 int main()
 {
@@ -41,21 +42,36 @@ int main()
     while (1){
         int n = socket_receive(json_buffer, sizeof(json_buffer));
         
-        if (n > 0){
+    if (n > 0){
 
-            if (strstr(json_buffer, "Overdrive")) {
-                printf("Preset contiene Overdrive\n");
-            }
+        printf("JSON recibido:\n%s\n", json_buffer);
+        memset(json_buffer, 0, sizeof(json_buffer));
 
-            if (strstr(json_buffer, "Delay")) {
-                printf("Preset contiene Delay\n");
-            }
+        char *p;
 
+        p = strstr(json_buffer, "\"GAIN\"");
+        if (p && sscanf(p, "\"GAIN\": %f", &gain) == 1) {
+            od.gain = gain * 10.0f;   // escala opcional
         }
+
+        p = strstr(json_buffer, "\"TONE\"");
+        if (p && sscanf(p, "\"TONE\": %f", &tone) == 1) {
+            od.tone = tone;
+        }
+
+        p = strstr(json_buffer, "\"OUTPUT\"");
+        if (p && sscanf(p, "\"OUTPUT\": %f", &output) == 1) {
+            od.output = output;
+        }
+
+        printf("OD params -> gain:%f tone:%f output:%f\n",
+               od.gain, od.tone, od.output);
+    }
     
         float input = (sinf(2.0f * PI * 440.0f * i / SAMPLE_RATE) > 0) ? 1.0f : -1.0f;  
         i++;
-        if (i > SAMPLE_RATE) i = 0;
+        if (i >= SAMPLE_RATE) 
+            i = 0;
 
         float od_out  = Overdrive_process(&od, input);  
         float wah_out = Wah_process(&wah, od_out);       
