@@ -51,20 +51,20 @@ class EffectWidget(QWidget):
         self.params_Widget.setVisible(False)
 
     PARAM_RANGES= {
-        "GAIN": (0, 1),
-        "TONE": (0, 1),
-        "OUTPUT": (0, 1),
+        "GAIN": (0, 1, ""),
+        "TONE": (0, 1, ""),
+        "OUTPUT": (0, 1, ""),
 
         "TIME": (1, 1000, "ms"),     # ms
-        "FEEDBACK": (0, 0.95),
-        "MIX": (0, 1),
+        "FEEDBACK": (0, 0.95, ""),
+        "MIX": (0, 1, ""),
 
         "FREQ": (300, 2000, "Hz"),   # Hz
-        "Q": (0.1, 10),
-        "LEVEL": (0, 1),
+        "Q": (0.1, 10, ""),
+        "LEVEL": (0, 1, ""),
 
         "RATE": (0.1, 10, "Hz"),     # Hz
-        "DEPTH": (0, 1),
+        "DEPTH": (0, 1, ""),
 
     }
 
