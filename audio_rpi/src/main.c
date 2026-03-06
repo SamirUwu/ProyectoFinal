@@ -87,7 +87,7 @@ int main()
             i = 0;
 
         float od_out  = Overdrive_process(&od, input);  
-        if(i % 1000 == 0) {
+        if(i % 3000 == 0) {
             printf("audio: %f %f\n", input, od_out);
         }
         //float wah_out = Wah_process(&wah, od_out);       
