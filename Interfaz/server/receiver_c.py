@@ -49,7 +49,7 @@ class SocketReceiver(QObject):
                 if pre is None:
                     time.sleep(0.05)
                     continue
-                print("audio:", pre, post)
+                #print("audio:", pre, post)
                 self.pre_received.emit(pre)
                 self.post_received.emit(post)
         finally:
