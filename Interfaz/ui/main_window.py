@@ -162,14 +162,15 @@ class MainWindow(QWidget):
 
     # Recepción de señales
     def sim_signal(self):
-        x = np.arange(len(self.signal_buffer))
+        x_pre = np.arange(len(self.pre_buffer))
+        x_post = np.arange(len(self.signal_buffer))
 
         if not self.show_fft:
             # Señal en el tiempo
             self.plot_post.setLabel("bottom", "Time")
             self.plot_post.setLabel("left", "Amplitude")
-            self.curve_pre.setData(self.x, list(self.pre_buffer))
-            self.curve_post.setData(self.x, list(self.signal_buffer))
+            self.curve_pre.setData(x_pre, list(self.pre_buffer))
+            self.curve_post.setData(x_post, list(self.signal_buffer))
         else:
             # FFT de la señal post-efecto
             self.plot_post.setLabel("bottom", "Frequency (Hz)")
