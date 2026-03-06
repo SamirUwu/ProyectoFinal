@@ -168,19 +168,24 @@ class MainWindow(QWidget):
 
         if not self.show_fft:
             # Señal en el tiempo
+            self.plot_post.setLabel("bottom", "Time")
+            self.plot_post.setLabel("left", "Amplitude")
             self.curve_pre.setData(x, list(self.pre_buffer))
             self.curve_post.setData(x, list(self.signal_buffer))
         else:
             # FFT de la señal post-efecto
+            self.plot_post.setLabel("bottom", "Frequency (Hz)")
+            self.plot_post.setLabel("left", "Magnitude")
+            
             y = np.array(self.signal_buffer, dtype=float)
             
-            # Zero-padding para mejorar resolución si buffer pequeño
+            # Zero-padding
             N_fft = 2048
             if len(y) < N_fft:
                 y = np.pad(y, (0, N_fft - len(y)), 'constant')
             
             Y = np.fft.rfft(y)
-            Y_mag = np.abs(Y) / len(Y)   # Normalizamos amplitud
+            Y_mag = np.abs(Y) / len(Y)
             freqs = np.fft.rfftfreq(N_fft, d=1.0/self.SAMPLE_RATE)
 
             self.curve_post.setData(freqs, Y_mag)
