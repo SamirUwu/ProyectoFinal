@@ -220,37 +220,41 @@ class MainWindow(QWidget):
         #if len(self.signal_buffer) % 200 == 0:
             #print("post buffer:", len(self.signal_buffer))
 
-    # Recepción de señales
     def sim_signal(self):
         x_pre = np.arange(len(self.pre_buffer))
         x_post = np.arange(len(self.signal_buffer))
 
-        if not self.show_fft:
-            # Señal en el tiempo
-            self.plot_post.setLabel("bottom", "Time")
-            self.plot_post.setLabel("left", "Amplitude")
-            self.curve_pre.setData(x_pre, list(self.pre_buffer))
-            self.curve_post.setData(x_post, list(self.signal_buffer))
+        self.curve_pre.setData(x_pre, list(self.pre_buffer))
+
+        if len(self.model.effects) == 0:
+            # No hay efectos: salida a cero
+            zeros = np.zeros(len(x_post))
+            self.curve_post.setData(x_post, zeros)
         else:
-            # FFT de la señal post-efecto
-            self.plot_post.setLabel("bottom", "Frequency (Hz)")
-            self.plot_post.setLabel("left", "Magnitude")
+            if not self.show_fft:
+                # Señal en el tiempo con efectos
+                self.plot_post.setLabel("bottom", "Time")
+                self.plot_post.setLabel("left", "Amplitude")
+                self.curve_post.setData(x_post, list(self.signal_buffer))
+            else:
+                # FFT de la señal post-efecto
+                self.plot_post.setLabel("bottom", "Frequency (Hz)")
+                self.plot_post.setLabel("left", "Magnitude")
 
-            y = np.array(self.signal_buffer, dtype=float)
+                y = np.array(self.signal_buffer, dtype=float)
 
-            # Zero-padding
-            N_fft = 4096
-            if len(y) < N_fft:
-                y = np.pad(y, (0, N_fft - len(y)), 'constant')
+                # Zero-padding
+                N_fft = 4096
+                if len(y) < N_fft:
+                    y = np.pad(y, (0, N_fft - len(y)), 'constant')
 
-            window = np.hanning(len(y))
-            y_win = y * window
-            Y = np.fft.rfft(y_win)
-            Y_mag_db = 20 * np.log10(np.abs(Y) / len(Y) + 1e-12)
-            freqs = np.fft.rfftfreq(N_fft, d=1.0/self.SAMPLE_RATE)
+                window = np.hanning(len(y))
+                y_win = y * window
+                Y = np.fft.rfft(y_win)
+                Y_mag_db = 20 * np.log10(np.abs(Y) / len(Y) + 1e-12)
+                freqs = np.fft.rfftfreq(N_fft, d=1.0/self.SAMPLE_RATE)
 
-            self.curve_post.setData(freqs, Y_mag_db)
-            self.curve_pre.setData(x_pre, list(self.pre_buffer))
+                self.curve_post.setData(freqs, Y_mag_db)
 
     def handle_param_change(self, effect_id, param, value):
         print("MainWindow updating model")
