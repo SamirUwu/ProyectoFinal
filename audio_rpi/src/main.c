@@ -80,12 +80,16 @@ int main()
         memset(json_buffer, 0, sizeof(json_buffer));
     }
     
-        float input = (sinf(2.0f * PI * 440.0f * i / SAMPLE_RATE) > 0) ? 1.0f : -1.0f;  
+        //float input = (sinf(2.0f * PI * 440.0f * i / SAMPLE_RATE) > 0) ? 1.0f : -1.0f;  
+        float input = sinf(2.0f * PI * 440.0f * i / SAMPLE_RATE);
         i++;
         if (i >= SAMPLE_RATE) 
             i = 0;
 
         float od_out  = Overdrive_process(&od, input);  
+        if(i % 1000 == 0) {
+            printf("audio: %f %f\n", input, od_out);
+        }
         //float wah_out = Wah_process(&wah, od_out);       
         //float post    = Chorus_process(&ch, wah_out);    
 
