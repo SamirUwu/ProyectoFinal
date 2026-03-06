@@ -30,13 +30,11 @@ int socket_init() {
 }
 
 int socket_receive(char *buffer, int max_len){
-    int n = recv(client_fd, buffer, max_len -1, MSG_DONTWAIT);
+    int n = recv(client_fd, buffer, max_len -1, 0);
 
     if (n > 0){
         buffer[n] = '\0';
-        return n;
     }
-    
     return 0;
 }
 
