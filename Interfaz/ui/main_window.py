@@ -162,26 +162,28 @@ class MainWindow(QWidget):
 
     # Recepción de señales
     def sim_signal(self):
-        x = np.arange(len(self.signal_buffer))
+        # Eje X separado
+        x_pre = np.arange(len(self.pre_buffer))
+        x_post = np.arange(len(self.signal_buffer))
 
         if not self.show_fft:
             # Señal en el tiempo
             self.plot_post.setLabel("bottom", "Time")
             self.plot_post.setLabel("left", "Amplitude")
-            self.curve_pre.setData(x, list(self.pre_buffer))
-            self.curve_post.setData(x, list(self.signal_buffer))
+            self.curve_pre.setData(x_pre, list(self.pre_buffer))
+            self.curve_post.setData(x_post, list(self.signal_buffer))
         else:
             # FFT de la señal post-efecto
             self.plot_post.setLabel("bottom", "Frequency (Hz)")
             self.plot_post.setLabel("left", "Magnitude")
-            
+
             y = np.array(self.signal_buffer, dtype=float)
-            
+
             # Zero-padding
             N_fft = 4096
             if len(y) < N_fft:
                 y = np.pad(y, (0, N_fft - len(y)), 'constant')
-            
+
             window = np.hanning(len(y))
             y_win = y * window
             Y = np.fft.rfft(y_win)
@@ -189,7 +191,7 @@ class MainWindow(QWidget):
             freqs = np.fft.rfftfreq(N_fft, d=1.0/self.SAMPLE_RATE)
 
             self.curve_post.setData(freqs, Y_mag_db)
-            self.curve_pre.setData(x, list(self.pre_buffer))
+            self.curve_pre.setData(x_pre, list(self.pre_buffer))
 
     def handle_param_change(self, effect_id, param, value):
         print("MainWindow updating model")
