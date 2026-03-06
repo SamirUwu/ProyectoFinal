@@ -196,8 +196,8 @@ class MainWindow(QWidget):
         print("MainWindow updating model")
 
         self.model.update_param(effect_id, param, value)
-        
-        json_data =self.model.to_json
+
+        json_data = self.model.to_json()
 
         print("JSON ready for C++:")
         print(json_data)
