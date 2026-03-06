@@ -37,7 +37,7 @@ int main()
         //float od_out = Overdrive_process(&od, input);
         //float ch_out = Chorus_process(&ch, input);
 
-        float post = Delay_process(&delay, input);
+        float post = Chorus_process(&ch, input);
 
         socket_send_two_floats(input, post);
         usleep(1000);
