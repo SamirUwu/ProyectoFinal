@@ -26,8 +26,8 @@ class MainWindow(QWidget):
         self.receiver.post_received.connect(self.update_buffer)
         self.receiver.start()
 
-        self.pre_buffer = deque([0]*500, maxlen=500)
-        self.signal_buffer = deque([0]*500, maxlen=500)
+        self.pre_buffer = deque([0]*500, maxlen=4096)
+        self.signal_buffer = deque([0]*500, maxlen=4096)
 
 
 
@@ -105,7 +105,7 @@ class MainWindow(QWidget):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
-        self.timer.start(100) #Elegir velocidad en la que se generan los puntos
+        self.timer.start(300) #Elegir velocidad en la que se generan los puntos
 
         self.server = TcpServer()
         self.server.json_received.connect(self.handle_remote_json)
@@ -158,10 +158,8 @@ class MainWindow(QWidget):
         self.signal_buffer.append(value)
 
     def update_pre_buffer(self, value):
-            self.pre_buffer.append(value)
+        self.pre_buffer.append(value)
 
-    def update_buffer(self, value):
-            self.signal_buffer.append(value)
     # Recepción de señales
     def sim_signal(self):
         x = np.arange(len(self.signal_buffer))
