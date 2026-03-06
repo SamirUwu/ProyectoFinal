@@ -51,7 +51,7 @@ int main()
 
         p = strstr(json_buffer, "\"GAIN\"");
         if (p && sscanf(p, "\"GAIN\": %f", &gain) == 1) {
-            od.gain = gain * 10.0f;   // escala opcional
+            od.gain = gain * 10.0f;   
         }
 
         p = strstr(json_buffer, "\"TONE\"");
@@ -64,8 +64,7 @@ int main()
             od.output = output;
         }
 
-        printf("OD params -> gain:%f tone:%f output:%f\n",
-               od.gain, od.tone, od.output);
+        printf("Parsed OD -> gain:%f tone:%f output:%f\n", gain, tone, output);
     }
     
         float input = (sinf(2.0f * PI * 440.0f * i / SAMPLE_RATE) > 0) ? 1.0f : -1.0f;  
