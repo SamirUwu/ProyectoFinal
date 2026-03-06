@@ -29,9 +29,9 @@ class EffectWidget(QWidget):
 
         #Sliders
         for param, value in effect_data["params"].items():
-            label = QLabel(f"{param}: {value}")
-            min_val, max_val = self.PARAM_RANGES.get(param, (0, 1))
-
+            min_val, max_val, unit = self.PARAM_RANGES.get(param, (0, 1, ""))
+            label = QLabel(f"{param}: {value} {unit}")
+            
             slider = QSlider(Qt.Orientation.Horizontal)
             slider.setMinimum(0)
             slider.setMaximum(100)
@@ -65,8 +65,6 @@ class EffectWidget(QWidget):
 
         "RATE": (0.1, 10, "Hz"),     # Hz
         "DEPTH": (0, 1),
-        "FEEDBACK": (0, 0.95),
-        "MIX": (0, 1)
 
     }
 
@@ -82,11 +80,11 @@ class EffectWidget(QWidget):
 
     def update_param(self, param, value, label):
 
-        min_val, max_val = self.PARAM_RANGES.get(param, (0, 1))
+        min_val, max_val, unit = self.PARAM_RANGES.get(param, (0, 1, ""))
 
         real_value = min_val + (value / 100) * (max_val - min_val)
 
-        label.setText(f"{param}: {round(real_value, 2)}")
+        label.setText(f"{param}: {round(real_value, 2)} {unit}")
 
         self.param_changed.emit(self.effect_id, param, real_value)
 
