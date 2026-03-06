@@ -26,10 +26,8 @@ class MainWindow(QWidget):
         self.receiver.post_received.connect(self.update_buffer)
         self.receiver.start()
 
-        self.pre_buffer = deque([0]*500, maxlen=1000)
-        self.signal_buffer = deque([0]*500, maxlen=1000)
-
-
+        self.pre_buffer = deque(maxlen=1000)
+        self.signal_buffer = deque(maxlen=1000)
 
         self.t = 0
         
@@ -105,7 +103,7 @@ class MainWindow(QWidget):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
-        self.timer.start(150) #Elegir velocidad en la que se generan los puntos
+        self.timer.start(30) #Elegir velocidad en la que se generan los puntos
 
         self.server = TcpServer()
         self.server.json_received.connect(self.handle_remote_json)
@@ -159,18 +157,19 @@ class MainWindow(QWidget):
 
     def update_pre_buffer(self, value):
         self.pre_buffer.append(value)
+        if len(self.signal_buffer) % 200 == 0:
+            print("post buffer:", len(self.signal_buffer))
 
     # Recepción de señales
     def sim_signal(self):
-        x_pre = np.arange(len(self.pre_buffer))
-        x_post = np.arange(len(self.signal_buffer))
+        x_ = np.arange(len(self.signal_buffer))
 
         if not self.show_fft:
             # Señal en el tiempo
             self.plot_post.setLabel("bottom", "Time")
             self.plot_post.setLabel("left", "Amplitude")
-            self.curve_pre.setData(x_pre, list(self.pre_buffer))
-            self.curve_post.setData(x_post, list(self.signal_buffer))
+            self.curve_pre.setData(x, list(self.pre_buffer))
+            self.curve_post.setData(x, list(self.signal_buffer))
         else:
             # FFT de la señal post-efecto
             self.plot_post.setLabel("bottom", "Frequency (Hz)")
