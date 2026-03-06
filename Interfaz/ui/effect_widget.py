@@ -88,4 +88,4 @@ class EffectWidget(QWidget):
 
         self.param_changed.emit(self.effect_id, param, real_value)
 
-    param_changed = pyqtSignal(int, str, float)
+    param_changed = pyqtSignal(str, str, float)

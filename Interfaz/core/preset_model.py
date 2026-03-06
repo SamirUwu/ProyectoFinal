@@ -31,7 +31,7 @@ class PresetModel:
         for index, effect in enumerate(incoming_effects):
 
             effect_with_id = {
-                "id": index,  # 
+                "id": effect.get("id"),  
                 "type": effect["type"],
                 "enabled": effect.get("enabled", True),
                 "params": effect.get("params", {})
