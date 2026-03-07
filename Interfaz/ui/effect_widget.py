@@ -36,11 +36,11 @@ class EffectWidget(QWidget):
         self.header_layout.setContentsMargins(0, 0, 0, 0)
         self.header_layout.setSpacing(5)
         self.header_widget.setStyleSheet("""
-            background-color: #f0f0f0;
-            border-radius: 4px;
-            padding: 4px;
+            background-color: #e0e0e0;
+            border-radius: 6px;
+            padding: 6px;
         """)
-        self.header_widget.setLayout(self.header_layout)
+        self.header_widget.setCursor(Qt.CursorShape.PointingHandCursor)
         
         #Linea divisoria
         line = QFrame()
@@ -52,8 +52,8 @@ class EffectWidget(QWidget):
         self.header_label = QLabel(effect_data["type"])
         self.header_label.setStyleSheet("""
             font-weight: bold;
-            font-size: 12pt;
-            padding-left: 4px;
+            font-size: 11pt;
+            color: #333;
         """)
         self.header_label.mousePressEvent = self.toggle_expand  
         self.header_layout.addWidget(self.header_label)
