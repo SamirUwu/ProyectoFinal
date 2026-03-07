@@ -256,22 +256,20 @@ class MainWindow(QWidget):
             self.curve_pre.setData(freqs, Y_mag_db)
 
         if len(self.model.effects) == 0:
-            pre_signal = np.array(self.pre_buffer, dtype=float)
-            self.curve_post.setData(x_post, pre_signal)
-        else:
+
             if not self.show_fft:
-                # Señal en el tiempo con efectos
                 self.plot_post.setLabel("bottom", "Time")
                 self.plot_post.setLabel("left", "Amplitude")
-                self.curve_post.setData(x_post, list(self.signal_buffer))
+
+                pre_signal = np.array(self.pre_buffer, dtype=float)
+                self.curve_post.setData(x_post, pre_signal)
+
             else:
-                # FFT de la señal post-efecto
                 self.plot_post.setLabel("bottom", "Frequency (Hz)")
                 self.plot_post.setLabel("left", "Magnitude")
 
-                y = np.array(self.signal_buffer, dtype=float)
+                y = np.array(self.pre_buffer, dtype=float)
 
-                # Zero-padding
                 N_fft = 4096
                 if len(y) < N_fft:
                     y = np.pad(y, (0, N_fft - len(y)), 'constant')
@@ -279,7 +277,8 @@ class MainWindow(QWidget):
                 window = np.hanning(len(y))
                 y_win = y * window
                 Y = np.fft.rfft(y_win)
-                Y_mag_db = 20 * np.log10(np.abs(Y) / len(Y) + 1e-12)
+
+                Y_mag_db = 20*np.log10(np.abs(Y)/len(Y) + 1e-12)
                 freqs = np.fft.rfftfreq(N_fft, d=1.0/self.SAMPLE_RATE)
 
                 self.curve_post.setData(freqs, Y_mag_db)
