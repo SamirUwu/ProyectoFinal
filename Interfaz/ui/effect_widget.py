@@ -59,7 +59,8 @@ class EffectWidget(QWidget):
         """)
         self.header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.header_label.mousePressEvent = self.toggle_expand  
-        self.header_layout.addWidget(self.header_label)
+
+        self.header_layout.addWidget(self.header_label, 1)
 
         # Botón "x" para eliminar
         self.delete_btn = QPushButton("✕")
