@@ -57,6 +57,7 @@ class EffectWidget(QWidget):
             font-size: 11pt;
             color: #333;
         """)
+        self.header_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.header_label.mousePressEvent = self.toggle_expand  
         self.header_layout.addWidget(self.header_label)
 
