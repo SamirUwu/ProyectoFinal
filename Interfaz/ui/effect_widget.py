@@ -65,9 +65,9 @@ class EffectWidget(QWidget):
         self.delete_btn.setFixedSize(20, 20)
         self.delete_btn.setStyleSheet("border: none; color: red; font-weight: bold;")
         self.delete_btn.clicked.connect(self.delete_self)
+        self.header_layout.addStretch()
         self.header_layout.addWidget(self.delete_btn)
 
-        self.header_layout.addStretch()
         self.main_layout.addWidget(self.header_widget)
 
         # Parametros
