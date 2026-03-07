@@ -233,7 +233,27 @@ class MainWindow(QWidget):
         x_pre = np.arange(len(self.pre_buffer))
         x_post = np.arange(len(self.signal_buffer))
 
-        self.curve_pre.setData(x_pre, list(self.pre_buffer))
+        if not self.show_fft:
+            self.plot_pre.setLabel("bottom", "Time")
+            self.plot_pre.setLabel("left", "Amplitude")
+            self.curve_pre.setData(x_pre, list(self.pre_buffer))
+        else:
+            self.plot_pre.setLabel("bottom", "Frequency (Hz)")
+            self.plot_pre.setLabel("left", "Magnitude")
+
+            y_pre = np.array(self.pre_buffer, dtype=float)
+
+            N_fft = 4096
+            if len(y_pre) < N_fft:
+                y_pre = np.pad(y_pre, (0, N_fft - len(y_pre)), 'constant')
+
+            window = np.hanning(len(y_pre))
+            y_win = y_pre * window
+            Y = np.fft.rfft(y_win)
+            Y_mag_db = 20 * np.log10(np.abs(Y) / len(Y) + 1e-12)
+            freqs = np.fft.rfftfreq(N_fft, d=1.0/self.SAMPLE_RATE)
+
+            self.curve_pre.setData(freqs, Y_mag_db)
 
         if len(self.model.effects) == 0:
             pre_signal = np.array(self.pre_buffer, dtype=float)
