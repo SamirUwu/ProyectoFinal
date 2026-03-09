@@ -61,7 +61,7 @@ class TcpServer(QThread):
 
                     print("📦 JSON recibido:", parsed)
 
-                    # 🔥 Emitimos señal a la UI
+                    # Emitimos señal a la UI
                     self.json_received.emit(parsed)
 
                 except Exception as e:
