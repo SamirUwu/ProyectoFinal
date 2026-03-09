@@ -1,11 +1,8 @@
 import socket
-from zeroconf import ServiceInfo, Zeroconf
 from PyQt6.QtCore import QThread, pyqtSignal
 import json
 
-
 class TcpServer(QThread):
-
     json_received = pyqtSignal(dict)
 
     def __init__(self, port=5000):
@@ -14,61 +11,54 @@ class TcpServer(QThread):
         self.running = True
 
     def run(self):
-        HOST = "0.0.0.0"
-
-        # Obtener IP local
-        temp_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        temp_sock.connect(("8.8.8.8", 80))
-        LOCAL_IP = temp_sock.getsockname()[0]
-        temp_sock.close()
-
-        # mDNS
-        zeroconf = Zeroconf()
-
-        service_type = "_guitarfx._tcp.local."
-        service_name = "PythonGuitarFX._guitarfx._tcp.local."
-
-        info = ServiceInfo(
-            type_=service_type,
-            name=service_name,
-            addresses=[socket.inet_aton(LOCAL_IP)],
-            port=self.port,
-            properties={"desc": "Servidor PyQt"},
-        )
-
-        zeroconf.register_service(info)
-
-        # Servidor TCP
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server.bind((HOST, self.port))
+        server.bind(("0.0.0.0", self.port))
         server.listen(5)
+        server.settimeout(1.0)  # para que el while pueda chequear self.running
 
-        print("🟢 Servidor listo...")
+        print(f"🟢 Servidor listo en puerto {self.port}")
 
         while self.running:
-            conn, addr = server.accept()
-            print(f"🔵 Conectado desde {addr}")
+            try:
+                conn, addr = server.accept()
+            except socket.timeout:
+                continue  # no hubo conexion, volver a chequear self.running
 
-            while True:
-                data = conn.recv(4096)
-                if not data:
+            print(f"🔵 Conectado desde {addr}")
+            conn.settimeout(1.0)
+
+            buffer = ""
+            while self.running:
+                try:
+                    data = conn.recv(4096)
+                    if not data:
+                        break
+
+                    buffer += data.decode()
+
+                    # Procesar mensajes completos separados por \n
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            parsed = json.loads(line)
+                            print("📦 JSON recibido:", parsed)
+                            self.json_received.emit(parsed)
+                        except json.JSONDecodeError as e:
+                            print("Error JSON:", e)
+
+                except socket.timeout:
+                    continue
+                except Exception as e:
+                    print(f"Error recibiendo datos: {e}")
                     break
 
-                try:
-                    msg = data.decode().strip()
-                    parsed = json.loads(msg)
+            conn.close()
+            print("🔌 Cliente desconectado")
 
-                    print("📦 JSON recibido:", parsed)
-
-                    # Emitimos señal a la UI
-                    self.json_received.emit(parsed)
-
-                except Exception as e:
-                    print("Error JSON:", e)
-
-        zeroconf.unregister_service(info)
-        zeroconf.close()
         server.close()
 
     def stop(self):

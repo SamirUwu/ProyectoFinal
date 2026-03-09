@@ -1,111 +1,77 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:multicast_dns/multicast_dns.dart';
 
 class NetworkService {
+  static const String _host = "10.42.0.1";  
+  static const int _port = 5000;
+
   static Socket? _socket;
-  static bool _connecting = false;
+  static bool _running = false;
 
   static Future<void> startAutoConnect() async {
-    if (_connecting) return;
+    if (_running) return;
+    _running = true;
 
-    _connecting = true;
-
-    while (true) {
+    while (_running) {
       if (_socket == null) {
         await _connectOnce();
       }
-
       await Future.delayed(const Duration(seconds: 3));
     }
   }
 
   static Future<void> _connectOnce() async {
     try {
-      debugPrint("🔎 Buscando servidor...");
-
-      final client = MDnsClient();
-      await client.start();
-
-      InternetAddress? targetAddress;
-      int? targetPort;
-
-      await for (final PtrResourceRecord ptr
-          in client.lookup<PtrResourceRecord>(
-              ResourceRecordQuery.serverPointer('_guitarfx._tcp.local'))) {
-
-        await for (final SrvResourceRecord srv
-            in client.lookup<SrvResourceRecord>(
-                ResourceRecordQuery.service(ptr.domainName))) {
-
-          targetPort = srv.port;
-
-          await for (final IPAddressResourceRecord ip
-              in client.lookup<IPAddressResourceRecord>(
-                  ResourceRecordQuery.addressIPv4(srv.target))) {
-
-            targetAddress = ip.address;
-            break;
-          }
-        }
-      }
-
-      client.stop();
-
-      if (targetAddress == null) {
-        debugPrint("❌ No se encontró el servidor");
-        return;
-      }
-
-      debugPrint("🎯 Encontrado en $targetAddress:$targetPort");
+      debugPrint("🔌 Conectando a $_host:$_port...");
 
       _socket = await Socket.connect(
-        targetAddress,
-        targetPort!,
+        _host,
+        _port,
         timeout: const Duration(seconds: 5),
       );
 
-      debugPrint("🟢 Conectado correctamente");
+      debugPrint("🟢 Conectado");
+
       _socket!.listen(
-      (_) {},
-
-      onDone: () {
-        debugPrint("🔌 Conexión cerrada");
-        _socket?.destroy();
-        _socket = null;
-      },
-
-      onError: (error) {
-        debugPrint("💀 Error de socket: $error");
-        _socket?.destroy();
-        _socket = null;
-      },
-
-      cancelOnError: true,
-    );
+        (_) {},
+        onDone: () {
+          debugPrint("🔌 Conexión cerrada");
+          _socket?.destroy();
+          _socket = null;
+        },
+        onError: (error) {
+          debugPrint("💀 Error: $error");
+          _socket?.destroy();
+          _socket = null;
+        },
+        cancelOnError: true,
+      );
 
     } catch (e) {
-      debugPrint("🔴 Error de conexión: $e");
+      debugPrint("🔴 No se pudo conectar: $e");
       _socket = null;
     }
   }
 
   static void sendJson(Map<String, dynamic> data) {
     if (_socket == null) {
-      debugPrint("⚠️ No hay conexión");
+      debugPrint("⚠️ Sin conexión");
       return;
     }
-
     try {
       final message = jsonEncode(data);
-      debugPrint("📤 APP → $message");
-
+      debugPrint("📤 → $message");
       _socket!.write("$message\n");
-
     } catch (e) {
-      debugPrint("💀 Socket muerto, reconectando...");
+      debugPrint("💀 Error enviando: $e");
       _socket = null;
     }
+  }
+
+  static void stop() {
+    _running = false;
+    _socket?.destroy();
+    _socket = null;
   }
 }
