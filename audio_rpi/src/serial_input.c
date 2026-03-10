@@ -31,9 +31,38 @@ static speed_t baud_to_speed(int baud)
     }
 }
 
+// ─── Autodetectar puerto serial ──────────────────────────────────────────────
+// Prueba los candidatos en orden y devuelve el primero que abre correctamente.
+// Devuelve un puntero estático válido hasta la próxima llamada, o NULL si no
+// encuentra ninguno.
+const char *serial_autodetect(void)
+{
+    static const char *candidates[] = {
+        "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2",
+        "/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2",
+        NULL
+    };
+    for (int i = 0; candidates[i] != NULL; i++) {
+        int fd = open(candidates[i], O_RDWR | O_NOCTTY | O_NONBLOCK);
+        if (fd >= 0) {
+            close(fd);
+            printf("[serial] autodetectado: %s\n", candidates[i]);
+            return candidates[i];
+        }
+    }
+    fprintf(stderr, "[serial] no se encontro ningun puerto serial\n");
+    return NULL;
+}
+
 // ─── Abrir y configurar el puerto ────────────────────────────────────────────
+// Si port == NULL, autodetecta.
 int serial_open(const char *port, int baud)
 {
+    if (port == NULL) {
+        port = serial_autodetect();
+        if (port == NULL) return -1;
+    }
+
     int fd = open(port, O_RDWR | O_NOCTTY | O_SYNC);
     if (fd < 0) {
         fprintf(stderr, "[serial] no se pudo abrir %s: %s\n", port, strerror(errno));
