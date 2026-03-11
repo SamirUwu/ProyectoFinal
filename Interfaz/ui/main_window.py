@@ -113,8 +113,8 @@ class MainWindow(QWidget):
         # Pre
         self.plot_pre = pg.PlotWidget()
         self.plot_pre.setTitle("Pre Effect", **title_style)
-        self.plot_pre.setLabel("left",   "Amplitude", **label_style)
-        self.plot_pre.setLabel("bottom", "Time",      **label_style)
+        self.plot_pre.setLabel("left", "Amplitude", **label_style)
+        self.plot_pre.setLabel("bottom", "Time", **label_style)
         self.plot_pre.getAxis("left").setTextPen('white')
         self.plot_pre.getAxis("bottom").setTextPen('white')
         self.curve_pre = self.plot_pre.plot(pen=pg.mkPen(color='c', width=2))
@@ -123,8 +123,8 @@ class MainWindow(QWidget):
         # Post
         self.plot_post = pg.PlotWidget()
         self.plot_post.setTitle("Post Effect", **title_style)
-        self.plot_post.setLabel("left",   "Amplitude", **label_style)
-        self.plot_post.setLabel("bottom", "Time",      **label_style)
+        self.plot_post.setLabel("left", "Amplitude", **label_style)
+        self.plot_post.setLabel("bottom", "Time", **label_style)
         self.plot_post.getAxis("left").setTextPen('white')
         self.plot_post.getAxis("bottom").setTextPen('white')
         self.curve_post = self.plot_post.plot(pen=pg.mkPen(color='c', width=2))
@@ -132,7 +132,7 @@ class MainWindow(QWidget):
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
-        self.timer.start(60) #Elegir velocidad en la que se generan los puntos
+        self.timer.start(80) #Elegir velocidad en la que se generan los puntos
 
         self.server = TcpServer()
         self.server.json_received.connect(self.handle_remote_json)
