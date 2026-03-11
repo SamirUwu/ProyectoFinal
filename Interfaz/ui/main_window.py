@@ -104,24 +104,35 @@ class MainWindow(QWidget):
         # Estado inicial
         self.show_fft = False
 
+        # Color de los ejes
+        label_style = {'color': 'white', 'font-size': '11pt'}
+        title_style = {'color': 'white', 'size': '13pt'}
+
         #Plot de las señales
-        self.plot_pre = pg.PlotWidget(title="Pre Effect Signal")
-        self.plot_pre.setTitle("Pre Effect", size="12pt")
-        self.plot_pre.setLabel("left", "Amplitude")
-        self.plot_pre.setLabel("bottom", "Time")
+
+        # Pre
+        self.plot_pre = pg.PlotWidget()
+        self.plot_pre.setTitle("Pre Effect", **title_style)
+        self.plot_pre.setLabel("left",   "Amplitude", **label_style)
+        self.plot_pre.setLabel("bottom", "Time",      **label_style)
+        self.plot_pre.getAxis("left").setTextPen('white')
+        self.plot_pre.getAxis("bottom").setTextPen('white')
         self.curve_pre = self.plot_pre.plot(pen=pg.mkPen(color='c', width=2))
         self.right_layout.addWidget(self.plot_pre)
 
-        self.plot_post = pg.PlotWidget(title="Post Effect Signal")
-        self.plot_post.setTitle("Post Effect", size="12pt")
-        self.plot_post.setLabel("left", "Amplitude")
-        self.plot_post.setLabel("bottom", "Time")
+        # Post
+        self.plot_post = pg.PlotWidget()
+        self.plot_post.setTitle("Post Effect", **title_style)
+        self.plot_post.setLabel("left",   "Amplitude", **label_style)
+        self.plot_post.setLabel("bottom", "Time",      **label_style)
+        self.plot_post.getAxis("left").setTextPen('white')
+        self.plot_post.getAxis("bottom").setTextPen('white')
         self.curve_post = self.plot_post.plot(pen=pg.mkPen(color='c', width=2))
         self.right_layout.addWidget(self.plot_post)
 
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
-        self.timer.start(100) #Elegir velocidad en la que se generan los puntos
+        self.timer.start(60) #Elegir velocidad en la que se generan los puntos
 
         self.server = TcpServer()
         self.server.json_received.connect(self.handle_remote_json)
