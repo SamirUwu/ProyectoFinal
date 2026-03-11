@@ -109,14 +109,14 @@ class MainWindow(QWidget):
         self.plot_pre.setTitle("Pre Effect", size="12pt")
         self.plot_pre.setLabel("left", "Amplitude")
         self.plot_pre.setLabel("bottom", "Time")
-        self.curve_pre = self.plot_pre.plot()
+        self.curve_pre = self.plot_pre.plot(pen=pg.mkPen(color='c', width=2))
         self.right_layout.addWidget(self.plot_pre)
 
         self.plot_post = pg.PlotWidget(title="Post Effect Signal")
         self.plot_post.setTitle("Post Effect", size="12pt")
         self.plot_post.setLabel("left", "Amplitude")
         self.plot_post.setLabel("bottom", "Time")
-        self.curve_post = self.plot_post.plot()
+        self.curve_post = self.plot_post.plot(pen=pg.mkPen(color='c', width=2))
         self.right_layout.addWidget(self.plot_post)
 
         self.timer = QTimer()
