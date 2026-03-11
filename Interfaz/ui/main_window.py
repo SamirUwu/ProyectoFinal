@@ -231,6 +231,13 @@ class MainWindow(QWidget):
         self.pre_buffer.append(value)
         #if len(self.signal_buffer) % 200 == 0:
             #print("post buffer:", len(self.signal_buffer))
+    
+    def update_buffers_batch(self, pre_batch, post_batch):
+        VREF = 3.3
+        pre_volts  = [(x + 1.0) * (VREF / 2.0) for x in pre_batch]
+        post_volts = [(x + 1.0) * (VREF / 2.0) for x in post_batch]
+        self.pre_buffer.extend(pre_volts)
+        self.signal_buffer.extend(post_volts)
 
     def sim_signal(self):
         x_pre = np.arange(len(self.pre_buffer))
