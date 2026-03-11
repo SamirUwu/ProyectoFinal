@@ -239,9 +239,33 @@ class MainWindow(QWidget):
         self.pre_buffer.extend(pre_volts)
         self.signal_buffer.extend(post_volts)
 
+    def _compute_fft(self, buffer, accum_key):
+        N_FFT = 4096
+        y = np.array(buffer, dtype=float)
+        
+        if len(y) < N_FFT:
+            y = np.pad(y, (0, N_FFT - len(y)), 'constant')
+        else:
+            y = y[-N_FFT:]  # usar los samples más recientes
+
+        window = np.blackman(N_FFT)
+        Y = np.abs(np.fft.rfft(y * window)) * 2.0 / np.sum(window)
+        Y_db = 20 * np.log10(Y + 1e-12)
+
+        prev = getattr(self, accum_key, None)
+        if prev is None or prev.shape != Y_db.shape:
+            setattr(self, accum_key, Y_db)
+        else:
+            smoothed = 0.7 * prev + 0.3 * Y_db  # α=0.3 
+            setattr(self, accum_key, smoothed)
+
+        freqs = np.fft.rfftfreq(N_FFT, d=1.0 / self.SAMPLE_RATE)
+        return freqs, getattr(self, accum_key)
+
     def sim_signal(self):
-        x_pre = np.arange(len(self.pre_buffer))
+        x_pre  = np.arange(len(self.pre_buffer))
         x_post = np.arange(len(self.signal_buffer))
+        post_src = self.pre_buffer if len(self.model.effects) == 0 else self.signal_buffer
 
         if not self.show_fft:
             self.plot_pre.setLabel("bottom", "Time")
@@ -249,76 +273,25 @@ class MainWindow(QWidget):
             self.curve_pre.setData(x_pre, list(self.pre_buffer))
         else:
             self.plot_pre.setLabel("bottom", "Frequency (Hz)")
-            self.plot_pre.setLabel("left", "Magnitude")
+            self.plot_pre.setLabel("left", "Magnitude (dBFS)")
+            freqs, Y_db = self._compute_fft(self.pre_buffer, '_fft_pre')
+            mask = freqs <= 20000
+            self.plot_pre.setXRange(0, 20000)
+            self.plot_pre.setYRange(-90, 5)
+            self.curve_pre.setData(freqs[mask], Y_db[mask])
 
-            y_pre = np.array(self.pre_buffer, dtype=float)
-
-            N_fft = 4096
-            if len(y_pre) < N_fft:
-                y_pre = np.pad(y_pre, (0, N_fft - len(y_pre)), 'constant')
-
-            window = np.hanning(len(y_pre))
-            y_win = y_pre * window
-            Y = np.fft.rfft(y_win)
-            Y_mag_db = 20 * np.log10(np.abs(Y) / len(Y) + 1e-12)
-            freqs = np.fft.rfftfreq(N_fft, d=1.0/self.SAMPLE_RATE)
-
-            self.curve_pre.setData(freqs, Y_mag_db)
-
-        if len(self.model.effects) == 0:
-
-            if not self.show_fft:
-                self.plot_post.setLabel("bottom", "Time")
-                self.plot_post.setLabel("left", "Amplitude")
-
-                pre_signal = np.array(self.pre_buffer, dtype=float)
-                self.curve_post.setData(x_post, pre_signal)
-
-            else:
-                self.plot_post.setLabel("bottom", "Frequency (Hz)")
-                self.plot_post.setLabel("left", "Magnitude")
-
-                y = np.array(self.pre_buffer, dtype=float)
-
-                N_fft = 4096
-                if len(y) < N_fft:
-                    y = np.pad(y, (0, N_fft - len(y)), 'constant')
-
-                window = np.hanning(len(y))
-                y_win = y * window
-                Y = np.fft.rfft(y_win)
-
-                Y_mag_db = 20*np.log10(np.abs(Y)/len(Y) + 1e-12)
-                freqs = np.fft.rfftfreq(N_fft, d=1.0/self.SAMPLE_RATE)
-
-                self.curve_post.setData(freqs, Y_mag_db)
-
+        if not self.show_fft:
+            self.plot_post.setLabel("bottom", "Time")
+            self.plot_post.setLabel("left", "Amplitude")
+            self.curve_post.setData(x_post, list(post_src))
         else:
-
-            if not self.show_fft:
-                self.plot_post.setLabel("bottom", "Time")
-                self.plot_post.setLabel("left", "Amplitude")
-
-                self.curve_post.setData(x_post, list(self.signal_buffer))
-
-            else:
-                self.plot_post.setLabel("bottom", "Frequency (Hz)")
-                self.plot_post.setLabel("left", "Magnitude")
-
-                y = np.array(self.signal_buffer, dtype=float)
-
-                N_fft = 4096
-                if len(y) < N_fft:
-                    y = np.pad(y, (0, N_fft - len(y)), 'constant')
-
-                window = np.hanning(len(y))
-                y_win = y * window
-                Y = np.fft.rfft(y_win)
-
-                Y_mag_db = 20*np.log10(np.abs(Y)/len(Y) + 1e-12)
-                freqs = np.fft.rfftfreq(N_fft, d=1.0/self.SAMPLE_RATE)
-
-                self.curve_post.setData(freqs, Y_mag_db)
+            self.plot_post.setLabel("bottom", "Frequency (Hz)")
+            self.plot_post.setLabel("left", "Magnitude (dBFS)")
+            freqs, Y_db = self._compute_fft(post_src, '_fft_post')
+            mask = freqs <= 20000
+            self.plot_post.setXRange(0, 20000)
+            self.plot_post.setYRange(-90, 5)
+            self.curve_post.setData(freqs[mask], Y_db[mask])
 
     def handle_param_change(self, effect_id, param, value):
         print("MainWindow updating model")
