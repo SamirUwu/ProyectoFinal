@@ -201,6 +201,17 @@ class MainWindow(QWidget):
         json_data = self.model.to_json()
         self.receiver.send_json(json_data)
 
+    def _save_current_preset(self):
+        import json as _json
+        # Leer el JSON del modelo actual y guardarlo en el dict en memoria
+        raw = self.model.to_json()
+        parsed = _json.loads(raw)
+        self.presets_data[self.current_preset_key] = {
+            "name": parsed["name"],
+            "effects": parsed["effects"]
+        }
+        self._save_presets_file(self.presets_data)
+        
     #Añadir efectos logic
     def add_effect(self):
         if len(self.model.effects) >= 4:
