@@ -95,12 +95,6 @@ class MainWindow(QWidget):
         self.main_layout.addLayout(self.left_layout, 1)
         self.main_layout.addLayout(self.right_layout, 2)
         
-        # Botón toggle
-        self.toggle_fft_btn = QPushButton("Show FFT")
-        self.toggle_fft_btn.setCheckable(True)
-        self.toggle_fft_btn.clicked.connect(self.toggle_fft)
-        self.right_layout.addWidget(self.toggle_fft_btn)
-        
         # Estado inicial
         self.show_fft = False
 
@@ -130,6 +124,12 @@ class MainWindow(QWidget):
         self.curve_post = self.plot_post.plot(pen=pg.mkPen(color='c', width=2))
         self.right_layout.addWidget(self.plot_post)
 
+        # Botón toggle
+        self.toggle_fft_btn = QPushButton("Show FFT")
+        self.toggle_fft_btn.setCheckable(True)
+        self.toggle_fft_btn.clicked.connect(self.toggle_fft)
+        self.right_layout.addWidget(self.toggle_fft_btn)
+        
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
         self.timer.start(80) #Elegir velocidad en la que se generan los puntos
