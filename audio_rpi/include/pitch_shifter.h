@@ -6,9 +6,9 @@
 
 #define SAMPLE_RATE 44100
 #define PI 3.14159265358979323846f
-#define PITCH_MAX_DELAY_MS 100
-#define MAX_GRAINS 4
-#define GRAIN_SIZE_MS 30
+#define PITCH_MAX_DELAY_MS 200
+#define MAX_GRAINS 8
+#define GRAIN_SIZE_MS 50
 
 typedef struct {
     float semitones;      // +/− semitonos
