@@ -8,6 +8,7 @@
 static float buffer[CHORUS_MAX_DELAY_SAMPLES];
 static int   writeIndex = 0;
 static float lfoPhase   = 0.0f;
+static float smoothRate = 0.0f;
 
 void Chorus_init(Chorus *ch, float rate, float depth, float mix)
 {
@@ -17,30 +18,34 @@ void Chorus_init(Chorus *ch, float rate, float depth, float mix)
     memset(buffer, 0, sizeof(buffer));
     writeIndex = 0;
     lfoPhase   = 0.0f;
+    smoothRate = rate;  // inicializar al valor real para evitar rampa al arrancar
 }
 
 float Chorus_process(Chorus *ch, float input)
 {
     buffer[writeIndex] = input;
 
-    // LFO seno [-1, 1]
+    // Suavizar el rate para evitar glitches al cambiarlo en vivo
+    // alpha = 0.001 → ~200ms de transicion
+    float alpha = 0.001f;
+    smoothRate  = smoothRate + alpha * (ch->rate - smoothRate);
+
+    // LFO seno [-1, 1] usando el rate suavizado
     float lfo = sinf(2.0f * PI * lfoPhase);
-    lfoPhase += ch->rate / SAMPLE_RATE;
+    lfoPhase += smoothRate / SAMPLE_RATE;
     if (lfoPhase >= 1.0f) lfoPhase -= 1.0f;
 
-    // Delay base 15ms + modulacion hasta 10ms
-    // Clamp para que nunca supere el buffer
-    float baseDelay = 0.015f * SAMPLE_RATE;
-    float maxMod    = 0.010f * SAMPLE_RATE;
+    // Delay base 15ms + modulacion hasta 10ms segun depth
+    float baseDelay    = 0.015f * SAMPLE_RATE;
+    float maxMod       = 0.010f * SAMPLE_RATE;
     float delaySamples = baseDelay + lfo * (ch->depth * maxMod);
 
-    // Clamp estricto: minimo 1 sample, maximo 90% del buffer
+    // Clamp estricto: nunca superar el 90% del buffer ni bajar de 1 sample
     float maxDelay = CHORUS_MAX_DELAY_SAMPLES * 0.9f;
-    if (delaySamples < 1.0f)      delaySamples = 1.0f;
-    if (delaySamples > maxDelay)  delaySamples = maxDelay;
+    if (delaySamples < 1.0f)     delaySamples = 1.0f;
+    if (delaySamples > maxDelay) delaySamples = maxDelay;
 
     float readIndex = (float)writeIndex - delaySamples;
-    // Wrap robusto para float
     while (readIndex < 0)
         readIndex += CHORUS_MAX_DELAY_SAMPLES;
 
