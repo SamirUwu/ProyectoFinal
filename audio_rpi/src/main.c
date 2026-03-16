@@ -127,30 +127,42 @@ int main()
     PitchShifter pitch;   PitchShifter_init(&pitch, 7.0f, 0.5f);
     Phaser       phaser;  Phaser_init(&phaser, 0.5f, 0.7f, 0.3f, 0.5f);
 
-    // --- Tabla de mapeo ---
     ParamMap map[] = {
-        { "Overdrive",    "GAIN",      FX_OVERDRIVE,    &od.gain,          10.0f,   1.0f },
-        { "Overdrive",    "TONE",      FX_OVERDRIVE,    &od.tone,           1.0f,   0.0f },
-        { "Overdrive",    "OUTPUT",    FX_OVERDRIVE,    &od.output,         1.0f,   0.0f },
-        { "Wah",          "FREQ",      FX_WAH,          &wah.freq,       10.0f, 2.0f },
-        { "Wah",          "Q",         FX_WAH,          &wah.q,             9.9f,   0.1f },
-        { "Wah",          "LEVEL",     FX_WAH,          &wah.level,         1.0f,   0.0f },
-        { "Delay",        "TIME",      FX_DELAY,        &delay.delay_ms,  10.0f,   1.0f },
-        { "Delay",        "FEEDBACK",  FX_DELAY,        &delay.feedback,    1.0f,   0.0f },
-        { "Delay",        "MIX",       FX_DELAY,        &delay.mix,         1.0f,   0.0f },
-        { "Chorus",       "RATE",      FX_CHORUS,       &ch.rate,           1.0f,   0.0f },
-        { "Chorus",       "DEPTH",     FX_CHORUS,       &ch.depth,          1.0f,   0.0f },
-        { "Chorus",       "MIX",       FX_CHORUS,       &ch.mix,            1.0f,   0.0f },
-        { "Flanger",      "RATE",      FX_FLANGER,      &flanger.rate,      1.0f,   0.0f },
-        { "Flanger",      "DEPTH",     FX_FLANGER,      &flanger.depth,     1.0f,   0.0f },
-        { "Flanger",      "FEEDBACK",  FX_FLANGER,      &flanger.feedback,  1.0f,   0.0f },
-        { "Flanger",      "MIX",       FX_FLANGER,      &flanger.mix,       1.0f,   0.0f },
-        { "PitchShifter", "SEMITONES", FX_PITCHSHIFTER, &pitch.semitones,   1.0f,   0.0f },
-        { "PitchShifter", "MIX",       FX_PITCHSHIFTER, &pitch.mix,         1.0f,   0.0f },
-        { "Phaser",       "RATE",      FX_PHASER,       &phaser.rate,       1.0f,   0.0f },
-        { "Phaser",       "DEPTH",     FX_PHASER,       &phaser.depth,      1.0f,   0.0f },
-        { "Phaser",       "FEEDBACK",  FX_PHASER,       &phaser.feedback,   1.0f,   0.0f },
-        { "Phaser",       "MIX",       FX_PHASER,       &phaser.mix,        1.0f,   0.0f },
+        // Overdrive — interfaz manda 0-1, gain necesita escala
+        { "Overdrive",    "GAIN",      FX_OVERDRIVE,    &od.gain,         20.0f,  1.0f },
+        { "Overdrive",    "TONE",      FX_OVERDRIVE,    &od.tone,          1.0f,  0.0f },
+        { "Overdrive",    "OUTPUT",    FX_OVERDRIVE,    &od.output,        1.0f,  0.0f },
+    
+        // Wah — interfaz ya manda FREQ en Hz, Q en 0.1-10, LEVEL en 0-1
+        { "Wah",          "FREQ",      FX_WAH,          &wah.freq,         1.0f,  0.0f },
+        { "Wah",          "Q",         FX_WAH,          &wah.q,            1.0f,  0.0f },
+        { "Wah",          "LEVEL",     FX_WAH,          &wah.level,        1.0f,  0.0f },
+    
+        // Delay — interfaz ya manda TIME en ms (1-1000)
+        { "Delay",        "TIME",      FX_DELAY,        &delay.delay_ms,   1.0f,  0.0f },
+        { "Delay",        "FEEDBACK",  FX_DELAY,        &delay.feedback,   1.0f,  0.0f },
+        { "Delay",        "MIX",       FX_DELAY,        &delay.mix,        1.0f,  0.0f },
+    
+        // Chorus — todo 0-1
+        { "Chorus",       "RATE",      FX_CHORUS,       &ch.rate,          1.0f,  0.0f },
+        { "Chorus",       "DEPTH",     FX_CHORUS,       &ch.depth,         1.0f,  0.0f },
+        { "Chorus",       "MIX",       FX_CHORUS,       &ch.mix,           1.0f,  0.0f },
+    
+        // Flanger — todo 0-1
+        { "Flanger",      "RATE",      FX_FLANGER,      &flanger.rate,     1.0f,  0.0f },
+        { "Flanger",      "DEPTH",     FX_FLANGER,      &flanger.depth,    1.0f,  0.0f },
+        { "Flanger",      "FEEDBACK",  FX_FLANGER,      &flanger.feedback, 1.0f,  0.0f },
+        { "Flanger",      "MIX",       FX_FLANGER,      &flanger.mix,      1.0f,  0.0f },
+    
+        // PitchShifter — interfaz ya manda -12 a 12
+        { "PitchShifter", "SEMITONES", FX_PITCHSHIFTER, &pitch.semitones,  1.0f,  0.0f },
+        { "PitchShifter", "MIX",       FX_PITCHSHIFTER, &pitch.mix,        1.0f,  0.0f },
+    
+        // Phaser — todo 0-1
+        { "Phaser",       "RATE",      FX_PHASER,       &phaser.rate,      1.0f,  0.0f },
+        { "Phaser",       "DEPTH",     FX_PHASER,       &phaser.depth,     1.0f,  0.0f },
+        { "Phaser",       "FEEDBACK",  FX_PHASER,       &phaser.feedback,  1.0f,  0.0f },
+        { "Phaser",       "MIX",       FX_PHASER,       &phaser.mix,       1.0f,  0.0f },
     };
     int map_size = sizeof(map) / sizeof(map[0]);
 
