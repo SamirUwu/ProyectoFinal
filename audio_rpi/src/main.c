@@ -135,7 +135,7 @@ int main()
         { "Wah",          "FREQ",      FX_WAH,          &wah.freq,       1800.0f, 200.0f },
         { "Wah",          "Q",         FX_WAH,          &wah.q,             9.9f,   0.1f },
         { "Wah",          "LEVEL",     FX_WAH,          &wah.level,         1.0f,   0.0f },
-        { "Delay",        "TIME",      FX_DELAY,        &delay.delay_ms,    1.0f,   0.0f },
+        { "Delay",        "TIME",      FX_DELAY,        &delay.delay_ms,  999.0f,   1.0f },
         { "Delay",        "FEEDBACK",  FX_DELAY,        &delay.feedback,    1.0f,   0.0f },
         { "Delay",        "MIX",       FX_DELAY,        &delay.mix,         1.0f,   0.0f },
         { "Chorus",       "RATE",      FX_CHORUS,       &ch.rate,           1.0f,   0.0f },
