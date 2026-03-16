@@ -1,5 +1,6 @@
 #include <math.h>
 #include "wah.h"
+#include <stdio.h>
 
 #define PI 3.14159265358979323846f
 
