@@ -41,8 +41,8 @@ float Phaser_process(Phaser *ph, float input)
     }
 
     // Clampear para evitar explosion numerica con feedback alto
-    if (sig >  2.0f) sig =  2.0f;
-    if (sig < -2.0f) sig = -2.0f;
+    if (sig >  1.2f) sig =  1.2f;
+    if (sig < -1.2f) sig = -1.2f;
 
     ph->feedback_sample = sig;
 
