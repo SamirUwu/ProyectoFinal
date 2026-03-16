@@ -141,7 +141,7 @@ int main()
     printf("[SIM_MODE] Usando señal sin() a 440 Hz — sin ESP32\n");
     int sim_i = 0;
 #endif
-    snd_pcm_t *pcm = alsa_initl(SAMPLE_RATE);
+    snd_pcm_t *pcm = alsa_init(SAMPLE_RATE);
     if (!pcm) return 1;
     socket_init();
 
