@@ -234,7 +234,6 @@ int main()
             sim_i++;
             if (sim_i >= SAMPLE_RATE) sim_i = 0;
         }
-        usleep(2900);   // imitar cadencia del serial a 460800 baud
 #else
         if (serial_read_packet(serial_fd, packet) < 0) {
             fprintf(stderr, "[serial] error leyendo paquete, reintentando...\n");
@@ -253,7 +252,11 @@ int main()
                 sig = process_effect(fx_order[k], sig,
                                      &od, &wah, &ch, &flanger, &pitch, &delay, &phaser);
             batch_post[s] = sig;
-            total_samples++;
+            total_samples++;    
+            // Salida por jack 3.5mm
+            int16_t sample = (int16_t)(sig * 32767.0f);
+            if (snd_pcm_writei(pcm, &sample, 1) < 0)
+                snd_pcm_recover(pcm, -EPIPE, 0);  // recuperar si hay underrun
         }
 
         if (total_samples % 22039 < SERIAL_PACKET_SAMPLES)
