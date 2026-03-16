@@ -235,10 +235,7 @@ int main()
 #if SIM_MODE == 1
         for (int s = 0; s < SERIAL_PACKET_SAMPLES; s++) {
             float t = (float)sim_i / SAMPLE_RATE;
-            batch_pre[s] =  0.5f  * sinf(2.0f * PI * 220.0f * t)   // fundamental
-                          + 0.25f * sinf(2.0f * PI * 440.0f * t)   // 2do armonico
-                          + 0.15f * sinf(2.0f * PI * 660.0f * t)   // 3ro
-                          + 0.10f * sinf(2.0f * PI * 880.0f * t);  // 4to
+            batch_pre[s] =  0.5f  * sinf(2.0f * PI * 220.0f * t)
             sim_i++;
             if (sim_i >= SAMPLE_RATE) sim_i = 0;
         }
