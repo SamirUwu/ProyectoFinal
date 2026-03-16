@@ -102,7 +102,7 @@ int main()
 {
     Delay delay;        Delay_init(&delay, 20.0f, 0.5f, 0.4f);
     Overdrive od;       Overdrive_init(&od, 0.0f, 0.0f, 0.0f);
-    Wah wah;            Wah_init(&wah, 2.0f, 3.0f, 0.9f);
+    Wah wah;            Wah_init(&wah, 800.0f, 4.0f, 1.0f);
     Chorus ch;          Chorus_init(&ch, 0.8f, 0.7f, 0.5f);
     Flanger flanger;    Flanger_init(&flanger, 0.25f, 0.7f, 0.3f, 0.5f);
     PitchShifter pitch; PitchShifter_init(&pitch, 7.0f, 0.5f);
@@ -112,7 +112,7 @@ int main()
         { "Overdrive",    "GAIN",      FX_OVERDRIVE,    &od.gain,         10.0f, 1.0f },
         { "Overdrive",    "TONE",      FX_OVERDRIVE,    &od.tone,          1.0f, 0.0f },
         { "Overdrive",    "OUTPUT",    FX_OVERDRIVE,    &od.output,        1.0f, 0.0f },
-        { "Wah",          "FREQ",      FX_WAH,          &wah.freq,         1.0f, 0.0f },
+        { "Wah",          "FREQ",      FX_WAH,          &wah.freq,         1700.0f, 300.0f},
         { "Wah",          "Q",         FX_WAH,          &wah.q,            1.0f, 0.0f },
         { "Wah",          "LEVEL",     FX_WAH,          &wah.level,        1.0f, 0.0f },
         { "Delay",        "TIME",      FX_DELAY,        &delay.delay_ms,   1.0f, 0.0f },
