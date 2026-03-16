@@ -30,39 +30,37 @@ void PitchShifter_init(PitchShifter *ps, float semitones, float mix)
 float PitchShifter_process(PitchShifter *ps, float input)
 {
     int bufferSize = (SAMPLE_RATE * PITCH_MAX_DELAY_MS) / 1000;
-
     ps->pitchFactor = powf(2.0f, ps->semitones / 12.0f);
     ps->buffer[ps->writeIndex] = input;
 
-    float output = 0.0f;
+    float output      = 0.0f;
+    float windowSum   = 0.0f;  // suma real de pesos de ventana
 
     for (int g = 0; g < MAX_GRAINS; g++)
     {
-        // Desplazamiento en samples escalado por pitchFactor
         float offset    = (float)ps->grainOffsets[g] * ps->pitchFactor;
         float readIndex = (float)ps->writeIndex - offset;
 
-        // Wrap positivo
         while (readIndex < 0)          readIndex += bufferSize;
         while (readIndex >= bufferSize) readIndex -= bufferSize;
 
-        // Interpolacion lineal
         int   i1   = (int)readIndex;
         int   i2   = (i1 + 1) % bufferSize;
         float frac = readIndex - floorf(readIndex);
         float s    = ps->buffer[i1] * (1.0f - frac) + ps->buffer[i2] * frac;
 
-        // Ventana Hanning por posicion dentro del grano
         int posInt     = ((ps->writeIndex - ps->grainOffsets[g])
                           % ps->grainSize + ps->grainSize) % ps->grainSize;
         float grainPos = (float)posInt / (float)ps->grainSize;
-        s *= hanning(grainPos);
+        float win      = hanning(grainPos);
 
-        output += s;
+        output    += s * win;
+        windowSum += win;  // acumular peso real
     }
 
-    // Normalizar por numero de granos
-    output /= MAX_GRAINS;
+    // Normalizar por la suma de ventanas — evita enterrar la señal
+    if (windowSum > 0.01f)
+        output /= windowSum;
 
     ps->writeIndex++;
     if (ps->writeIndex >= bufferSize)
