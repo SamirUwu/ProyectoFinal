@@ -4,7 +4,7 @@ SRC=$(wildcard src/*.c)
 OUT=audio_engine
 
 all:
-	$(CC) $(CFLAGS) $(SRC) -o $(OUT) -lm -lasound
+	$(CC) $(CFLAGS) $(SRC) -o $(OUT) -lm -lasound -lsndfile
 
 clean:
 	rm -f $(OUT)
