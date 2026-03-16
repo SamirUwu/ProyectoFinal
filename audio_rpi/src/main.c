@@ -35,7 +35,11 @@ static snd_pcm_t* alsa_init(unsigned int sample_rate)
     snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16_LE); // 16 bits
     snd_pcm_hw_params_set_channels(handle, params, 1);                   // mono
     snd_pcm_hw_params_set_rate(handle, params, sample_rate, 0);
-
+    snd_pcm_uframes_t buffer_size = 4096;
+    snd_pcm_uframes_t period_size = SERIAL_PACKET_SAMPLES;
+    snd_pcm_hw_params_set_buffer_size_near(handle, params, &buffer_size);
+    snd_pcm_hw_params_set_period_size_near(handle, params, &period_size, 0);
+    
     if (snd_pcm_hw_params(handle, params) < 0) {
         fprintf(stderr, "Error configurando ALSA\n");
         snd_pcm_close(handle);
@@ -253,11 +257,15 @@ int main()
                                      &od, &wah, &ch, &flanger, &pitch, &delay, &phaser);
             batch_post[s] = sig;
             total_samples++;    
-            // Salida por jack 3.5mm
-            int16_t sample = (int16_t)(sig * 32767.0f);
-            if (snd_pcm_writei(pcm, &sample, 1) < 0)
-                snd_pcm_recover(pcm, -EPIPE, 0);  // recuperar si hay underrun
         }
+        
+        int16_t pcm_buf[SERIAL_PACKET_SAMPLES];
+        for (int s = 0; s < SERIAL_PACKET_SAMPLES; s++)
+            pcm_buf[s] = (int16_t)(batch_post[s] * 32767.0f);
+        
+        int frames_written = snd_pcm_writei(pcm, pcm_buf, SERIAL_PACKET_SAMPLES);
+        if (frames_written < 0)
+            snd_pcm_recover(pcm, frames_written, 0);
 
         if (total_samples % 22039 < SERIAL_PACKET_SAMPLES)
             printf("audio: input=%f out=%f  cadena=%d efectos\n",
