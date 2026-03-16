@@ -17,6 +17,35 @@
 #define SAMPLE_RATE 44100
 #define PI 3.14159265358979323846f
 
+#include <alsa/asoundlib.h>
+
+static snd_pcm_t* alsa_init(unsigned int sample_rate)
+{
+    snd_pcm_t *handle;
+    snd_pcm_hw_params_t *params;
+
+    if (snd_pcm_open(&handle, "default", SND_PCM_STREAM_PLAYBACK, 0) < 0) {
+        fprintf(stderr, "Error abriendo dispositivo ALSA\n");
+        return NULL;
+    }
+
+    snd_pcm_hw_params_alloca(&params);
+    snd_pcm_hw_params_any(handle, params);
+    snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+    snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16_LE); // 16 bits
+    snd_pcm_hw_params_set_channels(handle, params, 1);                   // mono
+    snd_pcm_hw_params_set_rate(handle, params, sample_rate, 0);
+
+    if (snd_pcm_hw_params(handle, params) < 0) {
+        fprintf(stderr, "Error configurando ALSA\n");
+        snd_pcm_close(handle);
+        return NULL;
+    }
+
+    printf("🔊 ALSA listo a %u Hz\n", sample_rate);
+    return handle;
+}
+
 // ── Modo de entrada ───────────────────────────────────────────────────────────
 // SIM_MODE 1 → señal sin() simulada a 440 Hz (sin ESP32, para desarrollo)
 // SIM_MODE 0 → lectura real desde ESP32 por serial
@@ -112,7 +141,8 @@ int main()
     printf("[SIM_MODE] Usando señal sin() a 440 Hz — sin ESP32\n");
     int sim_i = 0;
 #endif
-
+    snd_pcm_t *pcm = alsa_initl(SAMPLE_RATE);
+    if (!pcm) return 1;
     socket_init();
 
     float batch_pre[SERIAL_PACKET_SAMPLES];
