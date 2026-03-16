@@ -235,7 +235,7 @@ int main()
 #if SIM_MODE == 1
         for (int s = 0; s < SERIAL_PACKET_SAMPLES; s++) {
             float t = (float)sim_i / SAMPLE_RATE;
-            batch_pre[s] =  0.5f  * sinf(2.0f * PI * 220.0f * t)
+            batch_pre[s] =  0.5f  * sinf(2.0f * PI * 220.0f * t);
             sim_i++;
             if (sim_i >= SAMPLE_RATE) sim_i = 0;
         }
