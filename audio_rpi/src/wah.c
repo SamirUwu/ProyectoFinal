@@ -54,6 +54,7 @@ float Wah_process(Wah *wah, float input)
     if (lfo_rate < 0.1f) lfo_rate = 0.1f;
     if (lfo_rate > 10.0f) lfo_rate = 10.0f;
 
+    float s       = sinf(lfo_phase);
     float lfo_val   = 0.5f * (1.0f + sinf(lfo_phase));   // 0..1
     float sweep_freq = WAH_FREQ_MIN + lfo_val * (WAH_FREQ_MAX - WAH_FREQ_MIN);
 
