@@ -1,10 +1,10 @@
 #include <math.h>
 #include "wah.h"
 
-#define PI 3.14159265358979323846f
+#define PI          3.14159265358979323846f
 
-#define WAH_FREQ_MIN  500.0f
-#define WAH_FREQ_MAX  1400.0f
+#define WAH_FREQ_MIN  200.0f    // igual que minscale=200 del Python
+#define WAH_FREQ_MAX  2000.0f   // igual que maxscale=2000 del Python
 
 typedef struct {
     float a0, a1, a2, b1, b2;
@@ -33,34 +33,34 @@ static void Wah_updateCoeffs(float center_freq, float q)
     float omega = 2.0f * PI * freq / SAMPLE_RATE;
     float cos_w = cosf(omega);
     float sin_w = sinf(omega);
-    float alpha = sin_w / (2.0f * q);
+    float alpha = sin_w / (2.0f * q);   // q=5 igual que el Python
 
-    // Lowpass resonante (igual que pyo type=2)
-    float norm  = 1.0f + alpha;
-    filter.a0   = (1.0f - cos_w) / 2.0f / norm;
-    filter.a1   = (1.0f - cos_w)        / norm;
-    filter.a2   = (1.0f - cos_w) / 2.0f / norm;
-    filter.b1   = (-2.0f * cos_w)       / norm;
-    filter.b2   = (1.0f - alpha)        / norm;
+    // Bandpass (pyo type=2, RBJ)
+    float norm = 1.0f + alpha;
+    filter.a0  =  alpha / norm;
+    filter.a1  =  0.0f;
+    filter.a2  = -alpha / norm;
+    filter.b1  = (-2.0f * cos_w) / norm;
+    filter.b2  = (1.0f - alpha)  / norm;
 }
 
 float Wah_process(Wah *wah, float input)
 {
+    // LFO lento, simula el pie moviendo el pedal
     float lfo_rate = wah->freq;
     if (lfo_rate < 0.1f) lfo_rate = 0.1f;
     if (lfo_rate > 4.0f) lfo_rate = 4.0f;
 
-    float s        = sinf(lfo_phase);
-    float lfo_val  = 0.5f * (1.0f + s * s * s);
-    float sweep_freq = WAH_FREQ_MIN + lfo_val * (WAH_FREQ_MAX - WAH_FREQ_MIN);
+    // Curva logarítmica — el oído percibe frecuencias en escala log,
+    // así el sweep suena uniforme igual que un pedal físico
+    float lfo_val    = 0.5f * (1.0f + sinf(lfo_phase));   // 0..1 lineal
+    float log_sweep  = WAH_FREQ_MIN * powf(WAH_FREQ_MAX / WAH_FREQ_MIN, lfo_val); // log
 
     lfo_phase += 2.0f * PI * lfo_rate / SAMPLE_RATE;
     if (lfo_phase >= 2.0f * PI) lfo_phase -= 2.0f * PI;
 
-    float q = wah->q;
-    if (q < 0.5f) q = 0.5f;
-
-    Wah_updateCoeffs(sweep_freq, q);
+    // Q fijo en 5, igual que el Python — no usar wah->q para esto
+    Wah_updateCoeffs(log_sweep, 5.0f);
 
     float w   = input - filter.b1 * filter.w1 - filter.b2 * filter.w2;
     float out = filter.a0 * w + filter.a1 * filter.w1 + filter.a2 * filter.w2;
