@@ -8,12 +8,13 @@
 
 typedef struct {
     float rate;   
-    float depth;    
+    float depth; 
+    float feedback; 
     float mix; 
 } Chorus;
 
 
-void Chorus_init(Chorus *ch, float rate, float depth, float mix);
+void Chorus_init(Chorus *ch, float rate, float depth, float feedback, float mix);
 float Chorus_process(Chorus *ch, float input);
 
 #endif
