@@ -5,8 +5,8 @@
 #define PI 3.14159265358979323846f
 
 // Rango del sweep en Hz alrededor de la frecuencia central
-#define WAH_FREQ_MIN  400.0f
-#define WAH_FREQ_MAX  2200.0f
+#define WAH_FREQ_MIN  500.0f
+#define WAH_FREQ_MAX  1400.0f
 
 typedef struct {
     float a0, a1, a2, b1, b2;
