@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define CHORUS_MAX_DELAY_MS 30
+#define CHORUS_MAX_DELAY_MS 100
 #define SAMPLE_RATE 44100
 
 typedef struct {
