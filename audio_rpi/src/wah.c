@@ -1,7 +1,6 @@
 #include <math.h>
 #include "wah.h"
 
-#define SAMPLE_RATE 44100.0f
 #define PI 3.14159265358979323846f
 
 // Rango del sweep en Hz alrededor de la frecuencia central
