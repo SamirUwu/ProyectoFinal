@@ -26,8 +26,8 @@ class MainWindow(QWidget):
         self.receiver.batch_received.connect(self.update_buffers_batch)
         self.receiver.start()
 
-        self.pre_buffer = deque(maxlen=4096)
-        self.signal_buffer = deque(maxlen=4096)
+        self.pre_buffer = deque(maxlen=8192)
+        self.signal_buffer = deque(maxlen=8192)
 
         self.t = 0
         
