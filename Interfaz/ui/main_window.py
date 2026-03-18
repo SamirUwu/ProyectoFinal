@@ -103,7 +103,7 @@ class MainWindow(QWidget):
         title_style = {'color': 'white', 'size': '13pt'}
 
         #Plot de las señales
-
+        self.user_zoom = False
         # Pre
         self.plot_pre = pg.PlotWidget()
         self.plot_pre.setTitle("Pre Effect", **title_style)
@@ -127,6 +127,9 @@ class MainWindow(QWidget):
             pen=pg.mkPen(color=(0, 180, 255), width=1.5),
         )
         self.right_layout.addWidget(self.plot_post)
+
+        self.plot_pre.sigRangeChangedManually.connect(lambda: setattr(self, 'user_zoom', True))
+        self.plot_post.sigRangeChangedManually.connect(lambda: setattr(self, 'user_zoom', True))
 
         # Botón toggle
         self.toggle_fft_btn = QPushButton("Show FFT")
@@ -281,7 +284,7 @@ class MainWindow(QWidget):
         defaults = {
             "Overdrive": {"GAIN":0.5,"TONE":0.5,"OUTPUT":0.5},
             "Delay": {"TIME":0.5,"FEEDBACK":0.3,"MIX":0.2},
-            "Wah": {"FREQ":0.5,"Q":0.3,"LEVEL":0.2},
+            "Wah": {"FREQ":0.5,"Q":0.3,"LEVEL":1.0},
             "Flanger": {"RATE":0.5,"DEPTH":0.3,"FEEDBACK":0.2,"MIX":0.5},
             "Chorus": {"RATE":0.5,"DEPTH":0.5,"MIX":0.5},
             "Phaser": {"RATE":0.5,"DEPTH":0.7,"FEEDBACK":0.3,"MIX":0.5},
@@ -311,7 +314,7 @@ class MainWindow(QWidget):
         self.signal_buffer.extend(post_volts)
 
     def _compute_fft(self, buffer, accum_key):
-        N_FFT = 4096
+        N_FFT = 8192
         y = np.array(buffer, dtype=float)
         
         if len(y) < N_FFT:
@@ -346,6 +349,11 @@ class MainWindow(QWidget):
 
         x_pre  = np.arange(len(pre_data))
         x_post = np.arange(len(post_data))
+
+        if not self.user_zoom:
+            self.plot_pre.setXRange(0, 20000)
+            peak = float(np.max(Y_db[mask]))
+            self.plot_pre.setYRange(-150, peak + 5)
 
         if not self.show_fft:
             self.plot_pre.setLabel("bottom", "Time")
