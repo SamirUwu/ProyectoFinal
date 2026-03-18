@@ -39,13 +39,13 @@ float Chorus_process(Chorus *ch, float input)
     // RATE llega 0.1-3 Hz — escala cuadrática igual que el ref
     float rate = ch->rate * ch->rate * 3.0f;
     if (rate < 0.01f) rate = 0.01f;
-    if (rate > 9.0f)  rate = 9.0f;
+    if (rate > 3.0f)  rate = 3.0f;
 
     // Feedback limitado para evitar saturación
     float feedback = ch->feedback * 0.5f;  // máximo real = 0.475
     if (feedback > 0.48f) feedback = 0.48f;
 
-    float modDepth = ch->depth * 0.003f * SAMPLE_RATE;
+    float modDepth = ch->depth * 0.002f * SAMPLE_RATE;
 
     // Escribir input una sola vez (compartido entre voces)
     // El feedback se aplica sobre la señal mezclada, no por voz
