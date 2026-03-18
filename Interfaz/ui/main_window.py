@@ -26,8 +26,8 @@ class MainWindow(QWidget):
         self.receiver.batch_received.connect(self.update_buffers_batch)
         self.receiver.start()
 
-        self.pre_buffer = deque(maxlen=4096)
-        self.signal_buffer = deque(maxlen=4096)
+        self.pre_buffer = deque(maxlen=8192)
+        self.signal_buffer = deque(maxlen=8192)
 
         self.t = 0
         
@@ -307,14 +307,14 @@ class MainWindow(QWidget):
         self.signal_buffer.extend(post_volts)
 
     def _compute_fft(self, buffer, accum_key):
-        N_FFT = 4096
+        N_FFT = 8192
         y = np.array(buffer, dtype=float)
         
         if len(y) < N_FFT:
             y = np.pad(y, (0, N_FFT - len(y)), 'constant')
         else:
             y = y[-N_FFT:]  # usar los samples más recientes
-            
+
         y -= np.mean(y)  
         window = np.blackman(N_FFT)
         Y = np.abs(np.fft.rfft(y * window)) * 2.0 / np.sum(window)
@@ -331,15 +331,23 @@ class MainWindow(QWidget):
         return freqs, getattr(self, accum_key)
 
     def sim_signal(self):
-        x_pre  = np.arange(len(self.pre_buffer))
-        x_post = np.arange(len(self.signal_buffer))
-        post_src = self.pre_buffer if len(self.model.effects) == 0 else self.signal_buffer
+        pre_data  = np.array(self.pre_buffer)
+        post_src  = self.pre_buffer if len(self.model.effects) == 0 else self.signal_buffer
+        post_data = np.array(post_src)
+
+        if len(pre_data) > 0:
+            pre_data = pre_data - np.mean(pre_data)
+        if len(post_data) > 0:
+            post_data = post_data - np.mean(post_data)
+
+        x_pre  = np.arange(len(pre_data))
+        x_post = np.arange(len(post_data))
 
         if not self.show_fft:
             self.plot_pre.setLabel("bottom", "Time")
             self.plot_pre.setLabel("left", "Amplitude")
             self.plot_pre.enableAutoRange()
-            self.curve_pre.setData(x_pre, list(self.pre_buffer))
+            self.curve_pre.setData(x_pre, pre_data)
         else:
             self.plot_pre.setLabel("bottom", "Frequency (Hz)")
             self.plot_pre.setLabel("left", "Magnitude (dBFS)")
@@ -353,7 +361,7 @@ class MainWindow(QWidget):
             self.plot_post.setLabel("bottom", "Time")
             self.plot_post.setLabel("left", "Amplitude")
             self.plot_post.enableAutoRange()
-            self.curve_post.setData(x_post, list(post_src))
+            self.curve_post.setData(x_post, post_data)
         else:
             self.plot_post.setLabel("bottom", "Frequency (Hz)")
             self.plot_post.setLabel("left", "Magnitude (dBFS)")
