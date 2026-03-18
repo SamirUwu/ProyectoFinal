@@ -26,8 +26,8 @@ class MainWindow(QWidget):
         self.receiver.batch_received.connect(self.update_buffers_batch)
         self.receiver.start()
 
-        self.pre_buffer = deque(maxlen=1000)
-        self.signal_buffer = deque(maxlen=1000)
+        self.pre_buffer = deque(maxlen=4096)
+        self.signal_buffer = deque(maxlen=4096)
 
         self.t = 0
         
@@ -314,7 +314,8 @@ class MainWindow(QWidget):
             y = np.pad(y, (0, N_FFT - len(y)), 'constant')
         else:
             y = y[-N_FFT:]  # usar los samples más recientes
-
+            
+        y -= np.mean(y)  
         window = np.blackman(N_FFT)
         Y = np.abs(np.fft.rfft(y * window)) * 2.0 / np.sum(window)
         Y_db = 20 * np.log10(Y + 1e-12)
