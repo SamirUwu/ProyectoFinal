@@ -45,7 +45,7 @@ float Chorus_process(Chorus *ch, float input)
     float feedback = ch->feedback * 0.5f;  // máximo real = 0.475
     if (feedback > 0.48f) feedback = 0.48f;
 
-    float modDepth = ch->depth * 0.006f * SAMPLE_RATE;  // max ~6ms
+    float modDepth = ch->depth * 0.003f * SAMPLE_RATE;
 
     // Escribir input una sola vez (compartido entre voces)
     // El feedback se aplica sobre la señal mezclada, no por voz
