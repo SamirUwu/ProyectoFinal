@@ -119,7 +119,7 @@ float process_effect(int fx_id, float sig,
 int main()
 {
     // --- Inicializar efectos ---
-    Delay        delay;   Delay_init(&delay, 20.0f, 0.5f, 0.4f);
+    Delay        delay;   Delay_init(&delay, 1.0f, 0.5f, 0.4f);
     Overdrive    od;      Overdrive_init(&od, 0.0f, 0.0f, 0.0f);
     Wah          wah;     Wah_init(&wah, 0.7f, 5.0f, 1.0f);
     Chorus       ch;      Chorus_init(&ch, 0.8f, 0.7f, 0.5, 0.6f);
@@ -129,7 +129,7 @@ int main()
 
     ParamMap map[] = {
         // Overdrive — interfaz manda 0-1, gain necesita escala
-        { "Overdrive",    "GAIN",      FX_OVERDRIVE,    &od.gain,          4.0f,  1.0f },
+        { "Overdrive",    "GAIN",      FX_OVERDRIVE,    &od.gain,          8.0f,  1.0f },
         { "Overdrive",    "TONE",      FX_OVERDRIVE,    &od.tone,          1.0f,  0.0f },
         { "Overdrive",    "OUTPUT",    FX_OVERDRIVE,    &od.output,        1.0f,  0.0f },
     
