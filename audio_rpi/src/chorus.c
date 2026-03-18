@@ -18,8 +18,8 @@ static const float voiceDelay[NUM_VOICES] = {
 
 static const float voiceDetune[NUM_VOICES] = {
     0.0f,
-    2.0f / 3.0f,
-    1.0f / 3.0f
+    0.25f,   // 90° de fase
+    0.5f     // 180° de fase
 };
 
 void Chorus_init(Chorus *ch, float rate, float depth, float feedback, float mix)
@@ -43,7 +43,8 @@ float Chorus_process(Chorus *ch, float input)
     float feedback = ch->feedback * 0.25f;
     if (feedback > 0.24f) feedback = 0.24f;
 
-    float modDepth = ch->depth * 0.003f * SAMPLE_RATE;
+    float modDepth = ch->depth * 0.002f * SAMPLE_RATE;
+    if (modDepth > 88.2f) modDepth = 88.2f;
 
     // Escribir input ANTES de leer
     for (int v = 0; v < NUM_VOICES; v++)
