@@ -355,32 +355,31 @@ class MainWindow(QWidget):
             self.plot_pre.setLabel("left", "Amplitude")
             self.plot_pre.enableAutoRange()
             self.curve_pre.setData(x_pre, pre_data)
-        else:
-            self.plot_pre.setLabel("bottom", "Frequency (Hz)")
-            self.plot_pre.setLabel("left", "Magnitude (dBFS)")
-            freqs, Y_db = self._compute_fft(self.pre_buffer, '_fft_pre')
-            mask = freqs <= 20000
-            if not self.user_zoom:
-                peak = float(np.max(Y_db[mask]))
-                self.plot_pre.setXRange(0, 20000)
-                self.plot_pre.setYRange(-150, peak + 5)
-            self.curve_pre.setData(freqs[mask], Y_db[mask])
 
-        if not self.show_fft:
             self.plot_post.setLabel("bottom", "Time")
             self.plot_post.setLabel("left", "Amplitude")
             self.plot_post.enableAutoRange()
             self.curve_post.setData(x_post, post_data)
         else:
+            freqs_pre,  Y_pre  = self._compute_fft(self.pre_buffer, '_fft_pre')
+            freqs_post, Y_post = self._compute_fft(post_src,        '_fft_post')
+            mask = freqs_pre <= 20000
+
+            if not self.user_zoom:
+                peak  = max(float(np.max(Y_pre[mask])), float(np.max(Y_post[mask])))
+                floor = min(float(np.min(Y_pre[mask])), float(np.min(Y_post[mask])))
+                self.plot_pre.setXRange(0, 20000)
+                self.plot_pre.setYRange(floor - 5, peak + 5)
+                self.plot_post.setXRange(0, 20000)
+                self.plot_post.setYRange(floor - 5, peak + 5)
+
+            self.plot_pre.setLabel("bottom", "Frequency (Hz)")
+            self.plot_pre.setLabel("left", "Magnitude (dBFS)")
+            self.curve_pre.setData(freqs_pre[mask], Y_pre[mask])
+
             self.plot_post.setLabel("bottom", "Frequency (Hz)")
             self.plot_post.setLabel("left", "Magnitude (dBFS)")
-            freqs, Y_db = self._compute_fft(post_src, '_fft_post')
-            mask = freqs <= 20000
-            if not self.user_zoom:
-                peak = float(np.max(Y_db[mask]))
-                self.plot_post.setXRange(0, 20000)
-                self.plot_post.setYRange(-150, peak + 5)
-            self.curve_post.setData(freqs[mask], Y_db[mask])
+            self.curve_post.setData(freqs_post[mask], Y_post[mask])
 
     def handle_param_change(self, effect_id, param, value):
         print("MainWindow updating model")
