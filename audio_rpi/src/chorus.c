@@ -82,7 +82,6 @@ float Chorus_process(Chorus *ch, float input)
 
     writeIndex = (writeIndex + 1) % MAX_SAMPLES;
 
-    float out = input * (1.0f - ch->mix) + wet * ch->mix;
     if (out >  1.2f) out =  1.2f;
     if (out < -1.2f) out = -1.2f;
 
