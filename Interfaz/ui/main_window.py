@@ -350,11 +350,6 @@ class MainWindow(QWidget):
         x_pre  = np.arange(len(pre_data))
         x_post = np.arange(len(post_data))
 
-        if not self.user_zoom:
-            self.plot_pre.setXRange(0, 20000)
-            peak = float(np.max(Y_db[mask]))
-            self.plot_pre.setYRange(-150, peak + 5)
-
         if not self.show_fft:
             self.plot_pre.setLabel("bottom", "Time")
             self.plot_pre.setLabel("left", "Amplitude")
@@ -365,10 +360,10 @@ class MainWindow(QWidget):
             self.plot_pre.setLabel("left", "Magnitude (dBFS)")
             freqs, Y_db = self._compute_fft(self.pre_buffer, '_fft_pre')
             mask = freqs <= 20000
-            self.plot_pre.setXRange(0, 20000)
-            # Dinámico: pico real como techo, -90 como piso
-            peak = float(np.max(Y_db[mask]))
-            self.plot_pre.setYRange(-150, peak + 5)
+            if not self.user_zoom:
+                peak = float(np.max(Y_db[mask]))
+                self.plot_pre.setXRange(0, 20000)
+                self.plot_pre.setYRange(-150, peak + 5)
             self.curve_pre.setData(freqs[mask], Y_db[mask])
 
         if not self.show_fft:
@@ -381,9 +376,10 @@ class MainWindow(QWidget):
             self.plot_post.setLabel("left", "Magnitude (dBFS)")
             freqs, Y_db = self._compute_fft(post_src, '_fft_post')
             mask = freqs <= 20000
-            self.plot_post.setXRange(0, 20000)
-            peak = float(np.max(Y_db[mask]))
-            self.plot_post.setYRange(-150, peak + 5)
+            if not self.user_zoom:
+                peak = float(np.max(Y_db[mask]))
+                self.plot_post.setXRange(0, 20000)
+                self.plot_post.setYRange(-150, peak + 5)
             self.curve_post.setData(freqs[mask], Y_db[mask])
 
     def handle_param_change(self, effect_id, param, value):
