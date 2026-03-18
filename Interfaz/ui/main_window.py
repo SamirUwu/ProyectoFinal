@@ -300,11 +300,11 @@ class MainWindow(QWidget):
             #print("post buffer:", len(self.signal_buffer))
     
     def update_buffers_batch(self, pre_batch, post_batch):
-        #VREF = 3.3
-        #pre_volts  = [(x + 1.0) * (VREF / 2.0) for x in pre_batch]
-        #post_volts = [(x + 1.0) * (VREF / 2.0) for x in post_batch]
-        self.pre_buffer.extend(pre_batch)
-        self.signal_buffer.extend(post_batch)
+        VREF = 3.3
+        pre_volts  = [(x + 1.0) * (VREF / 2.0) for x in pre_batch]
+        post_volts = [(x + 1.0) * (VREF / 2.0) for x in post_batch]
+        self.pre_buffer.extend(pre_volts)
+        self.signal_buffer.extend(post_volts)
 
     def _compute_fft(self, buffer, accum_key):
         N_FFT = 4096
