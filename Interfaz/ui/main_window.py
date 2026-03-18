@@ -284,7 +284,7 @@ class MainWindow(QWidget):
         defaults = {
             "Overdrive": {"GAIN":0.5,"TONE":0.5,"OUTPUT":0.5},
             "Delay": {"TIME":0.5,"FEEDBACK":0.3,"MIX":0.2},
-            "Wah": {"FREQ":0.5,"Q":0.3,"LEVEL":1.0},
+            "Wah": {"FREQ":0.5,"Q":0.8,"LEVEL":1.0},
             "Flanger": {"RATE":0.5,"DEPTH":0.3,"FEEDBACK":0.2,"MIX":0.5},
             "Chorus": {"RATE":0.5,"DEPTH":0.5,"MIX":0.5},
             "Phaser": {"RATE":0.5,"DEPTH":0.7,"FEEDBACK":0.3,"MIX":0.5},
