@@ -398,8 +398,8 @@ class MainWindow(QWidget):
         if self.show_fft:
             self.toggle_fft_btn.setText("Show Time")
             # Activar fill para FFT
-            self.curve_pre.setFillLevel(-150)
-            self.curve_post.setFillLevel(-150)
+            self.curve_pre.setFillLevel(-200)
+            self.curve_post.setFillLevel(-200)
             self.curve_pre.setBrush(pg.mkBrush(0, 140, 255, 60))
             self.curve_post.setBrush(pg.mkBrush(0, 140, 255, 60))
         else:
