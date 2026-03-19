@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <alsa/asoundlib.h>
 #include <sndfile.h>
+#include <sched.h>
+#include <sys/mman.h>
 
 #include "../include/socket_server.h"
 #include "../include/serial_input.h"
