@@ -139,26 +139,16 @@ class MainWindow(QWidget):
 
         # Bypass button
         self.bypass_active = False
+        self.bypass_indicator = pg.TextItem("⏺", color=(0, 255, 0), anchor=(1, 1))
+        self.bypass_indicator.setFont(pg.QtGui.QFont("Arial", 16))
+        self.plot_post.addItem(self.bypass_indicator)
+        self.plot_post.scene().sigMouseClicked.connect(self._check_bypass_click)
 
-        self.bypass_btn = QPushButton("●")
-        self.bypass_btn.setFixedSize(30, 30)
-        self.bypass_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #222;
-                color: #00ff00;
-                border-radius: 15px;
-                border: 2px solid #00cc00;
-                font-size: 18px;
-            }
-            QPushButton:checked {
-                color: #ff3333;
-                border-color: #cc0000;
-            }
-        """)
-        self.bypass_btn.setCheckable(True)
-        self.bypass_btn.setToolTip("Bypass")
-        self.bypass_btn.clicked.connect(self.toggle_bypass)
-        self.right_layout.addWidget(self.bypass_btn)
+        # Actualizar posición en cada redraw — agregar al final de sim_signal():
+        vb = self.plot_post.getViewBox()
+        xmax = vb.viewRange()[0][1]
+        ymin = vb.viewRange()[1][0]
+        self.bypass_indicator.setPos(xmax, ymin)
                 
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
@@ -438,11 +428,16 @@ class MainWindow(QWidget):
             self.curve_pre.setBrush(None)
             self.curve_post.setBrush(None)
             
-    def toggle_bypass(self):
-        self.bypass_active = self.bypass_btn.isChecked()
-
-        for effect in self.model.effects:
-            effect["enabled"] = not self.bypass_active
-
-        json_data = self.model.to_json()
-        self.receiver.send_json(json_data)
+    def _check_bypass_click(self, event):
+        pos = self.plot_post.getViewBox().mapSceneToView(event.scenePos())
+        vb = self.plot_post.getViewBox()
+        xmax = vb.viewRange()[0][1]
+        ymin = vb.viewRange()[1][0]
+        # Click cerca del LED
+        if abs(pos.x() - xmax) < xmax * 0.05 and abs(pos.y() - ymin) < abs(ymin) * 0.05:
+            self.bypass_active = not self.bypass_active
+            color = (255, 0, 0) if self.bypass_active else (0, 255, 0)
+            self.bypass_indicator.setColor(color)
+            for effect in self.model.effects:
+                effect["enabled"] = not self.bypass_active
+            self.receiver.send_json(self.model.to_json())
