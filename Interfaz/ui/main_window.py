@@ -374,9 +374,9 @@ class MainWindow(QWidget):
 
             if not self.user_zoom:
                 self.plot_pre.setXRange(0, 20000)
-                self.plot_pre.setYRange(-150, 0)
+                self.plot_pre.setYRange(-170, 0)
                 self.plot_post.setXRange(0, 20000)
-                self.plot_post.setYRange(-150, 0)
+                self.plot_post.setYRange(-170, 0)
 
             self.plot_pre.setLabel("bottom", "Frequency (Hz)")
             self.plot_pre.setLabel("left", "Magnitude (dBFS)")
