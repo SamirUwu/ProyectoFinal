@@ -351,15 +351,22 @@ class MainWindow(QWidget):
         x_post = np.arange(len(post_data))
 
         if not self.show_fft:
+            DISPLAY_SAMPLES = 2048
+            pre_display  = pre_data[-DISPLAY_SAMPLES:] if len(pre_data) > DISPLAY_SAMPLES else pre_data
+            post_display = post_data[-DISPLAY_SAMPLES:] if len(post_data) > DISPLAY_SAMPLES else post_data
+
+            x_pre  = np.arange(len(pre_display))
+            x_post = np.arange(len(post_display))
+
             self.plot_pre.setLabel("bottom", "Time")
             self.plot_pre.setLabel("left", "Amplitude")
             self.plot_pre.enableAutoRange()
-            self.curve_pre.setData(x_pre, pre_data)
+            self.curve_pre.setData(x_pre, pre_display)
 
             self.plot_post.setLabel("bottom", "Time")
             self.plot_post.setLabel("left", "Amplitude")
             self.plot_post.enableAutoRange()
-            self.curve_post.setData(x_post, post_data)
+            self.curve_post.setData(x_post, post_display)
         else:
             freqs_pre,  Y_pre  = self._compute_fft(self.pre_buffer, '_fft_pre')
             freqs_post, Y_post = self._compute_fft(post_src,        '_fft_post')
