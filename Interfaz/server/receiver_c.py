@@ -5,7 +5,7 @@ import threading
 import os
 import time
 
-BATCH_SIZE = 512   # debe coincidir con SERIAL_PACKET_SAMPLES en C
+BATCH_SIZE = 128   # debe coincidir con SERIAL_PACKET_SAMPLES en C
 
 class SocketReceiver(QObject):
     # Ahora emite arrays numpy-compatibles (lista de floats) en vez de un float
