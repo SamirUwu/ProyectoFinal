@@ -314,7 +314,7 @@ class MainWindow(QWidget):
         self.signal_buffer.extend(post_volts)
 
     def _compute_fft(self, buffer, accum_key):
-        N_FFT = 4096
+        N_FFT = 2048
         y = np.array(buffer, dtype=float)
         
         if len(y) < N_FFT:
