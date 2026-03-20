@@ -136,7 +136,30 @@ class MainWindow(QWidget):
         self.toggle_fft_btn.setCheckable(True)
         self.toggle_fft_btn.clicked.connect(self.toggle_fft)
         self.right_layout.addWidget(self.toggle_fft_btn)
-        
+
+        # Bypass button
+        self.bypass_active = False
+
+        self.bypass_btn = QPushButton("●")
+        self.bypass_btn.setFixedSize(30, 30)
+        self.bypass_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #222;
+                color: #00ff00;
+                border-radius: 15px;
+                border: 2px solid #00cc00;
+                font-size: 18px;
+            }
+            QPushButton:checked {
+                color: #ff3333;
+                border-color: #cc0000;
+            }
+        """)
+        self.bypass_btn.setCheckable(True)
+        self.bypass_btn.setToolTip("Bypass")
+        self.bypass_btn.clicked.connect(self.toggle_bypass)
+        self.right_layout.addWidget(self.bypass_btn)
+                
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
         self.timer.start(100) #Elegir velocidad en la que se generan los puntos
@@ -414,3 +437,12 @@ class MainWindow(QWidget):
             self.curve_post.setFillLevel(None)
             self.curve_pre.setBrush(None)
             self.curve_post.setBrush(None)
+            
+    def toggle_bypass(self):
+        self.bypass_active = self.bypass_btn.isChecked()
+
+        for effect in self.model.effects:
+            effect["enabled"] = not self.bypass_active
+
+        json_data = self.model.to_json()
+        self.receiver.send_json(json_data)
