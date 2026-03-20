@@ -26,8 +26,8 @@ class MainWindow(QWidget):
         self.receiver.batch_received.connect(self.update_buffers_batch)
         self.receiver.start()
 
-        self.pre_buffer = deque(maxlen=4096)
-        self.signal_buffer = deque(maxlen=4096)
+        self.pre_buffer = deque(maxlen=8192)
+        self.signal_buffer = deque(maxlen=8192)
 
         self.t = 0
         
@@ -375,7 +375,7 @@ class MainWindow(QWidget):
                 self.plot_pre.setYRange(floor_pre - 5, peak_pre + 5)
                 self.plot_post.setXRange(0, 20000)
                 self.plot_post.setYRange(floor_post - 5, peak_post + 5)
-                
+
             self.plot_pre.setLabel("bottom", "Frequency (Hz)")
             self.plot_pre.setLabel("left", "Magnitude (dBFS)")
             self.curve_pre.setData(freqs_pre[mask], Y_pre[mask])
