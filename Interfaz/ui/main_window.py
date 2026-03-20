@@ -465,6 +465,6 @@ class MainWindow(QWidget):
             effect["enabled"] = not self.bypass_active
         self.receiver.send_json(self.model.to_json())
 
-        def resizeEvent(self, event):
-            super().resizeEvent(event)
-            self.bypass_label.move(self.plot_post.width() - self.bypass_label.width() - 10, 10)
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.bypass_label.move(self.plot_post.width() - self.bypass_label.width() - 10, 10)
