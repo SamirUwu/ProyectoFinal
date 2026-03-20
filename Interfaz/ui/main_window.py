@@ -139,16 +139,23 @@ class MainWindow(QWidget):
 
         # Bypass button
         self.bypass_active = False
-        self.bypass_indicator = pg.TextItem("⏺", color=(0, 255, 0), anchor=(1, 1))
-        self.bypass_indicator.setFont(pg.QtGui.QFont("Arial", 16))
-        self.plot_post.addItem(self.bypass_indicator)
-        self.plot_post.scene().sigMouseClicked.connect(self._check_bypass_click)
-
-        # Actualizar posición en cada redraw — agregar al final de sim_signal():
-        vb = self.plot_post.getViewBox()
-        xmax = vb.viewRange()[0][1]
-        ymin = vb.viewRange()[1][0]
-        self.bypass_indicator.setPos(xmax, ymin)
+        self.bypass_label = QLabel("BYPASS", self.plot_post)
+        self.bypass_label.setStyleSheet("""
+            QLabel {
+                color: #aaaaaa;
+                background-color: rgba(0,0,0,180);
+                border: 1px solid #555;
+                border-radius: 4px;
+                padding: 3px 8px;
+                font-size: 11px;
+                font-weight: bold;
+            }
+        """)
+        self.bypass_label.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.bypass_label.adjustSize()
+        self.bypass_label.move(10, 10)  # esquina superior izquierda
+        self.bypass_label.show()
+        self.bypass_label.mousePressEvent = self._toggle_bypass_click
                 
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
@@ -428,16 +435,32 @@ class MainWindow(QWidget):
             self.curve_pre.setBrush(None)
             self.curve_post.setBrush(None)
             
-    def _check_bypass_click(self, event):
-        pos = self.plot_post.getViewBox().mapSceneToView(event.scenePos())
-        vb = self.plot_post.getViewBox()
-        xmax = vb.viewRange()[0][1]
-        ymin = vb.viewRange()[1][0]
-        # Click cerca del LED
-        if abs(pos.x() - xmax) < xmax * 0.05 and abs(pos.y() - ymin) < abs(ymin) * 0.05:
-            self.bypass_active = not self.bypass_active
-            color = (255, 0, 0) if self.bypass_active else (0, 255, 0)
-            self.bypass_indicator.setColor(color)
-            for effect in self.model.effects:
-                effect["enabled"] = not self.bypass_active
-            self.receiver.send_json(self.model.to_json())
+    def _toggle_bypass_click(self, event):
+        self.bypass_active = not self.bypass_active
+        if self.bypass_active:
+            self.bypass_label.setStyleSheet("""
+                QLabel {
+                    color: #ff4444;
+                    background-color: rgba(80,0,0,200);
+                    border: 1px solid #ff4444;
+                    border-radius: 4px;
+                    padding: 3px 8px;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+            """)
+        else:
+            self.bypass_label.setStyleSheet("""
+                QLabel {
+                    color: #aaaaaa;
+                    background-color: rgba(0,0,0,180);
+                    border: 1px solid #555;
+                    border-radius: 4px;
+                    padding: 3px 8px;
+                    font-size: 11px;
+                    font-weight: bold;
+                }
+            """)
+        for effect in self.model.effects:
+            effect["enabled"] = not self.bypass_active
+        self.receiver.send_json(self.model.to_json())
