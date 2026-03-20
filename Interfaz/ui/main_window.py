@@ -331,7 +331,7 @@ class MainWindow(QWidget):
         if prev is None or prev.shape != Y_db.shape:
             setattr(self, accum_key, Y_db)
         else:
-            smoothed = 0.7 * prev + 0.3 * Y_db  # α=0.3 
+            smoothed = 0.3 * prev + 0.7 * Y_db  # α=0.3 
             setattr(self, accum_key, smoothed)
 
         freqs = np.fft.rfftfreq(N_FFT, d=1.0 / self.SAMPLE_RATE)
@@ -366,13 +366,16 @@ class MainWindow(QWidget):
             mask = freqs_pre <= 20000
 
             if not self.user_zoom:
-                peak  = max(float(np.max(Y_pre[mask])), float(np.max(Y_post[mask])))
-                floor = min(float(np.min(Y_pre[mask])), float(np.min(Y_post[mask])))
-                self.plot_pre.setXRange(0, 20000)
-                self.plot_pre.setYRange(floor - 5, peak + 5)
-                self.plot_post.setXRange(0, 20000)
-                self.plot_post.setYRange(floor - 5, peak + 5)
+                peak_pre  = float(np.max(Y_pre[mask]))
+                floor_pre = float(np.min(Y_pre[mask]))
+                peak_post  = float(np.max(Y_post[mask]))
+                floor_post = float(np.min(Y_post[mask]))
 
+                self.plot_pre.setXRange(0, 20000)
+                self.plot_pre.setYRange(floor_pre - 5, peak_pre + 5)
+                self.plot_post.setXRange(0, 20000)
+                self.plot_post.setYRange(floor_post - 5, peak_post + 5)
+                
             self.plot_pre.setLabel("bottom", "Frequency (Hz)")
             self.plot_pre.setLabel("left", "Magnitude (dBFS)")
             self.curve_pre.setData(freqs_pre[mask], Y_pre[mask])
