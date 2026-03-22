@@ -6,18 +6,21 @@ class EffectWidget(QWidget):
     delete_requested = pyqtSignal(str)
 
     PARAM_RANGES = {
-        "GAIN": (0, 1, ""),
-        "TONE": (0, 1, ""),
-        "OUTPUT": (0, 1, ""),
-        "TIME": (1, 1000, "ms"),
-        "FEEDBACK": (0, 0.95, ""),
-        "MIX": (0, 1, ""),
-        "FREQ": (300, 4000, "Hz"),
-        "Q": (0.1, 10, ""),
-        "LEVEL": (0, 1, ""),
-        "RATE": (0.1, 3, "Hz"),
-        "DEPTH": (0, 1, ""),
-        "SEMITONES": (-12, 12, "st")
+        "GAIN":       (0, 1, ""),
+        "TONE":       (0, 1, ""),
+        "OUTPUT":     (0, 1, ""),
+        "TIME":       (1, 1000, "ms"),
+        "FEEDBACK":   (0, 0.95, ""),
+        "MIX":        (0, 1, ""),
+        "FREQ":       (300, 4000, "Hz"),
+        "Q":          (0.1, 10, ""),
+        "LEVEL":      (0, 1, ""),
+        "RATE":       (0.1, 3, "Hz"),
+        "DEPTH":      (0, 1, ""),
+        "SEMITONES":  (-12, 12, "st"),
+        "SEMITONES_B":(-12, 12, "st"),
+        "MIX_A":      (0, 1, ""),
+        "MIX_B":      (0, 1, ""),
     }
 
     def __init__(self, effect_data):

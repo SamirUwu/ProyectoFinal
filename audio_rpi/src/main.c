@@ -164,8 +164,11 @@ int main()
         { "Flanger",      "MIX",       FX_FLANGER,      &flanger.mix,      1.0f,  0.0f },
     
         // PitchShifter — interfaz ya manda -12 a 12
-        { "PitchShifter", "SEMITONES", FX_PITCHSHIFTER, &pitch.semitones,  1.0f,  0.0f },
-        { "PitchShifter", "MIX",       FX_PITCHSHIFTER, &pitch.mix,        1.0f,  0.0f },
+        { "PitchShifter", "SEMITONES",   FX_PITCHSHIFTER, &pitch.semitones_a, 1.0f, 0.0f },
+        { "PitchShifter", "SEMITONES_B", FX_PITCHSHIFTER, &pitch.semitones_b, 1.0f, 0.0f },
+        { "PitchShifter", "MIX_A",       FX_PITCHSHIFTER, &pitch.mix_a,       1.0f, 0.0f },
+        { "PitchShifter", "MIX_B",       FX_PITCHSHIFTER, &pitch.mix_b,       1.0f, 0.0f },
+        { "PitchShifter", "MIX",         FX_PITCHSHIFTER, &pitch.mix,         1.0f, 0.0f },
     
         // Phaser — todo 0-1
         { "Phaser",       "RATE",      FX_PHASER,       &phaser.rate,      1.0f,  0.0f },

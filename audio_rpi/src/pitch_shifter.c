@@ -2,6 +2,8 @@
 #include <string.h>
 #include <math.h>
 
+#define BUFFER_SIZE ((SAMPLE_RATE * PITCH_MAX_DELAY_MS) / 1000)
+
 static inline float hanning(float x)
 {
     if (x < 0.0f) x = 0.0f;
@@ -9,84 +11,89 @@ static inline float hanning(float x)
     return 0.5f * (1.0f - cosf(2.0f * PI * x));
 }
 
-void PitchShifter_init(PitchShifter *ps, float semitones, float mix)
+static void voice_init(PitchVoice *v, int grainSize)
 {
-    ps->semitones   = semitones;
-    ps->pitchFactor = powf(2.0f, semitones / 12.0f);
-    ps->mix         = mix;
-    ps->writeIndex  = 0;
-    ps->grainSize   = (GRAIN_SIZE_MS * SAMPLE_RATE) / 1000;
-
-    int bufferSize = (SAMPLE_RATE * PITCH_MAX_DELAY_MS) / 1000;
-    for (int i = 0; i < bufferSize; i++)
-        ps->buffer[i] = 0.0f;
-
-    // Cada grano empieza en una fase distinta uniformemente distribuida
-    // para que siempre haya cobertura continua sin huecos
+    memset(v->buffer, 0, sizeof(v->buffer));
+    v->writeIndex = 0;
     for (int g = 0; g < MAX_GRAINS; g++) {
-        ps->grainPhase[g]     = (float)g / MAX_GRAINS;  // fase [0,1] escalonada
-        ps->grainReadIndex[g] = (float)(g * ps->grainSize / MAX_GRAINS);
+        v->grainPhase[g]     = (float)g / MAX_GRAINS;
+        v->grainReadIndex[g] = (float)(g * grainSize / MAX_GRAINS);
     }
 }
 
-float PitchShifter_process(PitchShifter *ps, float input)
+static float voice_process(PitchVoice *v, float input, float pitchFactor, int grainSize)
 {
-    int bufferSize = (SAMPLE_RATE * PITCH_MAX_DELAY_MS) / 1000;
-
-    ps->pitchFactor = powf(2.0f, ps->semitones / 12.0f);
-
-    // Escribir input en el buffer circular
-    ps->buffer[ps->writeIndex] = input;
+    // Escribir en buffer
+    int wi = (int)v->writeIndex % BUFFER_SIZE;
+    v->buffer[wi] = input;
 
     float output    = 0.0f;
     float windowSum = 0.0f;
 
     for (int g = 0; g < MAX_GRAINS; g++)
     {
-        // grainPhase avanza a 1/grainSize por sample
-        ps->grainPhase[g] += 1.0f / ps->grainSize;
+        v->grainPhase[g] += 1.0f / grainSize;
 
-        // Cuando el grano termina, reiniciarlo desde el writeIndex actual
-        if (ps->grainPhase[g] >= 1.0f) {
-            ps->grainPhase[g]     -= 1.0f;
-            // El nuevo grano empieza a leer desde writeIndex
-            // con un pequeño offset para evitar que todos los granos
-            // lean exactamente lo mismo
-            ps->grainReadIndex[g]  = (float)ps->writeIndex;
+        if (v->grainPhase[g] >= 1.0f) {
+            v->grainPhase[g] -= 1.0f;
+            // Reiniciar con offset aleatorio pequeño para evitar phase coherence
+            int offset = (g * grainSize / MAX_GRAINS);
+            v->grainReadIndex[g] = (float)((wi - offset + BUFFER_SIZE) % BUFFER_SIZE);
         }
 
-        // Leer del buffer con interpolacion lineal
-        float ri   = ps->grainReadIndex[g];
-        while (ri < 0)          ri += bufferSize;
-        while (ri >= bufferSize) ri -= bufferSize;
+        // Interpolación lineal
+        float ri = v->grainReadIndex[g];
+        while (ri < 0)           ri += BUFFER_SIZE;
+        while (ri >= BUFFER_SIZE) ri -= BUFFER_SIZE;
 
-        int   i1   = (int)ri % bufferSize;
-        int   i2   = (i1 + 1) % bufferSize;
+        int   i1   = (int)ri % BUFFER_SIZE;
+        int   i2   = (i1 + 1) % BUFFER_SIZE;
         float frac = ri - floorf(ri);
-        float s    = ps->buffer[i1] * (1.0f - frac) + ps->buffer[i2] * frac;
+        float s    = v->buffer[i1] * (1.0f - frac) + v->buffer[i2] * frac;
 
-        // Ventana Hanning sobre la fase del grano
-        float win  = hanning(ps->grainPhase[g]);
-        output    += s * win;
-        windowSum += win;
+        float win   = hanning(v->grainPhase[g]);
+        output     += s * win;
+        windowSum  += win;
 
-        // Avanzar el read index a velocidad pitchFactor
-        // pitchFactor > 1 → lee más rápido → pitch sube
-        // pitchFactor < 1 → lee más lento  → pitch baja
-        ps->grainReadIndex[g] += ps->pitchFactor;
-        if (ps->grainReadIndex[g] >= bufferSize)
-            ps->grainReadIndex[g] -= bufferSize;
-        if (ps->grainReadIndex[g] < 0)
-            ps->grainReadIndex[g] += bufferSize;
+        v->grainReadIndex[g] += pitchFactor;
+        if (v->grainReadIndex[g] >= BUFFER_SIZE)
+            v->grainReadIndex[g] -= BUFFER_SIZE;
+        if (v->grainReadIndex[g] < 0)
+            v->grainReadIndex[g] += BUFFER_SIZE;
     }
 
-    // Normalizar por suma real de ventanas
     if (windowSum > 0.01f)
         output /= windowSum;
 
-    ps->writeIndex++;
-    if (ps->writeIndex >= bufferSize)
-        ps->writeIndex = 0;
+    v->writeIndex++;
+    if (v->writeIndex >= BUFFER_SIZE)
+        v->writeIndex = 0;
 
-    return input * (1.0f - ps->mix) + output * ps->mix;
+    return output;
+}
+
+void PitchShifter_init(PitchShifter *ps, float semitones, float mix)
+{
+    ps->semitones_a = semitones;
+    ps->semitones_b = 0.0f;
+    ps->mix_a       = 1.0f;
+    ps->mix_b       = 0.0f;
+    ps->mix         = mix;
+    ps->grainSize   = (GRAIN_SIZE_MS * SAMPLE_RATE) / 1000;
+
+    voice_init(&ps->voice_a, ps->grainSize);
+    voice_init(&ps->voice_b, ps->grainSize);
+}
+
+float PitchShifter_process(PitchShifter *ps, float input)
+{
+    float pf_a = powf(2.0f, ps->semitones_a / 12.0f);
+    float pf_b = powf(2.0f, ps->semitones_b / 12.0f);
+
+    float out_a = voice_process(&ps->voice_a, input, pf_a, ps->grainSize);
+    float out_b = voice_process(&ps->voice_b, input, pf_b, ps->grainSize);
+
+    float wet = out_a * ps->mix_a + out_b * ps->mix_b;
+
+    return input * (1.0f - ps->mix) + wet * ps->mix;
 }
