@@ -7,7 +7,8 @@ CXXFLAGS = -Iinclude -I$(DAISY) -I$(DAISY)/Utility -I$(DAISY)/Control \
 
 C_SRC   = $(filter-out src/chorus.c src/pitch_shifter.c src/overdrive.c, $(wildcard src/*.c))
 CPP_SRC = src/chorus.cpp src/pitch_shifter.cpp src/overdrive.cpp \
-          $(DAISY)/Control/phasor.cpp
+          $(DAISY)/Control/phasor.cpp \
+          $(DAISY)/Effects/overdrive.cpp
 
 C_OBJ   = $(C_SRC:.c=.o)
 CPP_OBJ = $(CPP_SRC:.cpp=.o)
@@ -24,4 +25,4 @@ all: $(C_OBJ) $(CPP_OBJ)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OUT) src/*.o $(DAISY)/Control/*.o
+	rm -f $(OUT) src/*.o $(DAISY)/Control/*.o $(DAISY)/Effects/*.o
