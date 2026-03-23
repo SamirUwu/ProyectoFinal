@@ -95,8 +95,14 @@ float Chorus_process(Chorus *ch, float input)
     float freq = lfo_freq_min + ch->rate * ch->rate * (lfo_freq_max - lfo_freq_min);
     float lfo_inc = 4.f * freq / (float)SAMPLE_RATE;
 
-    eng_l.lfo_freq = eng_l.lfo_freq < 0.f ? -lfo_inc : lfo_inc;
-    eng_r.lfo_freq = eng_r.lfo_freq < 0.f ? -lfo_inc : lfo_inc;
+    float abs_freq_l = fabsf(eng_l.lfo_freq);
+    float abs_freq_r = fabsf(eng_r.lfo_freq);
+    if (fabsf(abs_freq_l - lfo_inc) > 1e-8f) {
+        eng_l.lfo_freq = eng_l.lfo_freq < 0.f ? -lfo_inc : lfo_inc;
+    }
+    if (fabsf(abs_freq_r - lfo_inc) > 1e-8f) {
+        eng_r.lfo_freq = eng_r.lfo_freq < 0.f ? -lfo_inc : lfo_inc;
+    }
 
     // depth → lfo_amp relativo al delay base
     float depth = ch->depth > 0.93f ? 0.93f : ch->depth;
