@@ -1,9 +1,9 @@
 CC       = gcc
 CXX      = g++
+DAISY    = ../dependencies/DaisySP/Source
 CFLAGS   = -Iinclude -Wall -O2
-CXXFLAGS = -Iinclude -Wall -O2 -std=c++14
+CXXFLAGS = -Iinclude -I$(DAISY) -Wall -O2 -std=c++14
 
-# Archivos C — excluir los que tienen versión .cpp
 C_SRC   = $(filter-out src/chorus.c src/pitch_shifter.c, $(wildcard src/*.c))
 CPP_SRC = src/chorus.cpp src/pitch_shifter.cpp
 

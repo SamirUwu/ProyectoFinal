@@ -1,15 +1,4 @@
-/*
- * pitch_shifter.cpp
- * DaisySP PitchShifter portado para Linux/RPi.
- * Wrapper extern "C" para que main.c lo use sin cambios.
- *
- * Tu PitchShifter tiene dos voces (A y B) con semitones independientes.
- * Voz A: semitones_a, mix_a
- * Voz B: semitones_b, mix_b
- * Mix global: mix
- */
-
-#include "pitchshifter_dsp.h"
+#include "Effects/pitchshifter.h"
 
 static daisysp::PitchShifter g_ps_a;
 static daisysp::PitchShifter g_ps_b;
@@ -44,7 +33,6 @@ extern "C" float PitchShifter_process(PitchShifter *ps, float input)
 
     float wet = wet_a + wet_b;
 
-    // Normalizar si ambas voces están activas
     float total_mix = ps->mix_a + ps->mix_b;
     if(total_mix > 0.01f)
         wet /= total_mix;

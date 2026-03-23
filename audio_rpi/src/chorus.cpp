@@ -1,20 +1,5 @@
-/*
- * chorus.cpp
- * Usa DaisySP Chorus internamente.
- * El wrapper extern "C" expone Chorus_init / Chorus_process para main.c
- */
-
-// Incluir chorus.h ANTES de chorus_dsp.h para que el typedef C se defina primero
-// Luego usamos daisysp::Chorus con namespace explícito para evitar ambigüedad
-
 #include <cmath>
-
-// ── DaisySP inline — no usamos using namespace daisysp ───────────────────────
-#include "dsp.h"
-#include "delayline.h"
-#include "chorus_dsp.h"
-
-// ── ChorusEngine ─────────────────────────────────────────────────────────────
+#include "Effects/chorus.h"
 
 void daisysp::ChorusEngine::Init(float sample_rate)
 {
