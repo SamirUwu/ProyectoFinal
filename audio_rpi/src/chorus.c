@@ -2,19 +2,80 @@
 #include <string.h>
 #include "chorus.h"
 
-#define PI 3.14159265358979323846f
-#define MAX_SAMPLES ((int)(CHORUS_MAX_DELAY_MS * SAMPLE_RATE / 1000))
-#define NUM_VOICES 3
+#define PI        3.14159265358979323846f
+#define MAX_DELAY ((int)(CHORUS_MAX_DELAY_MS * SAMPLE_RATE / 1000))
 
-// Predelay por voz en ms — clave para sonar a chorus y no a vibrato
-static const float voicePredelay[NUM_VOICES] = { 25.0f, 30.0f, 35.0f };
+// ── Delay line con interpolación lineal ──────────────────────────────────────
+typedef struct {
+    float buf[MAX_DELAY];
+    int   head;
+    float delay;
+} DelayLine;
 
-// Detune de fase del LFO por voz (0, 120°, 240°)
-static const float voiceDetune[NUM_VOICES] = { 0.0f, 0.333f, 0.666f };
+static void dl_init(DelayLine *d) {
+    memset(d->buf, 0, sizeof(d->buf));
+    d->head  = 0;
+    d->delay = 0.f;
+}
 
-static float buffer[NUM_VOICES][MAX_SAMPLES];
-static int   writeIndex = 0;
-static float lfoPhase[NUM_VOICES];
+static void dl_set_delay(DelayLine *d, float delay_samples) {
+    if (delay_samples < 0.f)         delay_samples = 0.f;
+    if (delay_samples > MAX_DELAY-2) delay_samples = (float)(MAX_DELAY-2);
+    d->delay = delay_samples;
+}
+
+static float dl_read(DelayLine *d) {
+    float pos = (float)d->head - d->delay;
+    while (pos < 0)          pos += MAX_DELAY;
+    while (pos >= MAX_DELAY) pos -= MAX_DELAY;
+    int   i1   = (int)pos % MAX_DELAY;
+    int   i2   = (i1 + 1) % MAX_DELAY;
+    float frac = pos - floorf(pos);
+    return d->buf[i1] * (1.f - frac) + d->buf[i2] * frac;
+}
+
+static void dl_write(DelayLine *d, float val) {
+    d->buf[d->head] = val;
+    d->head = (d->head + 1) % MAX_DELAY;
+}
+
+// ── Engine (un canal, igual que ChorusEngine de DaisySP) ─────────────────────
+typedef struct {
+    DelayLine del;
+    float     lfo_phase;
+    float     lfo_freq;
+    float     lfo_amp;
+    float     delay_base;
+    float     feedback;
+} ChorusEngine;
+
+static void engine_init(ChorusEngine *e, float phase_offset) {
+    dl_init(&e->del);
+    e->feedback   = 0.2f;
+    e->lfo_phase  = phase_offset;
+    e->delay_base = MAX_DELAY * 0.25f;  // ~25% del max delay como base
+    e->lfo_amp    = 0.9f * e->delay_base;
+    e->lfo_freq   = 4.f * 0.3f / (float)SAMPLE_RATE;
+}
+
+static float engine_process(ChorusEngine *e, float in) {
+    // LFO triangular (igual que DaisySP)
+    e->lfo_phase += e->lfo_freq;
+    if (e->lfo_phase > 0.25f || e->lfo_phase < -0.25f)
+        e->lfo_freq = -e->lfo_freq;
+
+    float lfo_sig = e->lfo_phase * e->lfo_amp * 4.f;
+
+    dl_set_delay(&e->del, lfo_sig + e->delay_base);
+
+    float out = dl_read(&e->del);
+    dl_write(&e->del, in + out * e->feedback);
+
+    return (in + out) * 0.5f;  // equal mix — igual que DaisySP
+}
+
+// ── Dos engines con fase offset para ancho estéreo ───────────────────────────
+static ChorusEngine eng_l, eng_r;
 
 void Chorus_init(Chorus *ch, float rate, float depth, float feedback, float mix)
 {
@@ -22,63 +83,32 @@ void Chorus_init(Chorus *ch, float rate, float depth, float feedback, float mix)
     ch->depth    = depth;
     ch->feedback = feedback;
     ch->mix      = mix;
-    memset(buffer, 0, sizeof(buffer));
-    writeIndex = 0;
-    for (int v = 0; v < NUM_VOICES; v++)
-        lfoPhase[v] = voiceDetune[v];
+
+    engine_init(&eng_l, 0.f);
+    engine_init(&eng_r, 0.5f);  // 180° offset → stereo width
 }
 
 float Chorus_process(Chorus *ch, float input)
 {
-    float rate  = ch->rate;
-    if (rate < 0.1f) rate = 0.1f;
-    if (rate > 3.0f) rate = 3.0f;
+    // LFO freq: igual que ChorusModule (cuadrático para rango más musical)
+    float lfo_freq_min = 1.0f, lfo_freq_max = 20.0f;
+    float freq = lfo_freq_min + ch->rate * ch->rate * (lfo_freq_max - lfo_freq_min);
+    float lfo_inc = 4.f * freq / (float)SAMPLE_RATE;
 
-    // depth en ms (igual que MATLAB), máx ~10ms de modulación
-    float depthMS = ch->depth * 10.0f;
+    eng_l.lfo_freq = eng_l.lfo_freq < 0.f ? -lfo_inc : lfo_inc;
+    eng_r.lfo_freq = eng_r.lfo_freq < 0.f ? -lfo_inc : lfo_inc;
 
-    // feedback suave
-    float feedback = ch->feedback * 0.3f;
-    if (feedback > 0.29f) feedback = 0.29f;
+    // depth → lfo_amp relativo al delay base
+    float depth = ch->depth > 0.93f ? 0.93f : ch->depth;
+    eng_l.lfo_amp = depth * eng_l.delay_base;
+    eng_r.lfo_amp = depth * eng_r.delay_base;
 
-    float wet = 0.0f;
+    eng_l.feedback = ch->feedback * 0.95f;
+    eng_r.feedback = ch->feedback * 0.95f;
 
-    for (int v = 0; v < NUM_VOICES; v++) {
-        // LFO en ms, igual que MATLAB: depth * sin(...) + predelay
-        float lfoMS     = depthMS * sinf(2.0f * PI * lfoPhase[v]) + voicePredelay[v];
-        float lfoSamples = (lfoMS / 1000.0f) * SAMPLE_RATE;
+    float out_l = engine_process(&eng_l, input);
+    float out_r = engine_process(&eng_r, input);
 
-        // Leer con interpolación lineal
-        float readPos = (float)writeIndex - lfoSamples;
-        while (readPos < 0)            readPos += MAX_SAMPLES;
-        while (readPos >= MAX_SAMPLES) readPos -= MAX_SAMPLES;
-
-        int   i1      = (int)readPos % MAX_SAMPLES;
-        int   i2      = (i1 + 1) % MAX_SAMPLES;
-        float fr      = readPos - floorf(readPos);
-        float delayed = buffer[v][i1] * (1.0f - fr) + buffer[v][i2] * fr;
-
-        wet += delayed;
-
-        // Avanzar fase del LFO
-        lfoPhase[v] += rate / SAMPLE_RATE;
-        if (lfoPhase[v] >= 1.0f) lfoPhase[v] -= 1.0f;
-    }
-
-    wet /= NUM_VOICES;
-
-    // Escribir en buffer con feedback (como MATLAB: buffer = [in + feedback*wet; ...])
-    for (int v = 0; v < NUM_VOICES; v++)
-        buffer[v][writeIndex] = input + feedback * wet;
-
-    writeIndex = (writeIndex + 1) % MAX_SAMPLES;
-
-    // Mezcla dry/wet
-    float out = input * (1.0f - ch->mix) + wet * ch->mix;
-
-    // Soft clip suave
-    if (out >  1.0f) out =  1.0f;
-    if (out < -1.0f) out = -1.0f;
-
-    return out;
+    float wet = (out_l + out_r) * 0.5f;
+    return input * (1.f - ch->mix) + wet * ch->mix;
 }
