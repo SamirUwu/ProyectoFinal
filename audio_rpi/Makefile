@@ -1,7 +1,6 @@
 CC       = gcc
 CXX      = g++
-DAISY    = ../dependencies/DaisySP/Source
-CFLAGS   = -Iinclude -Wall -O2
+DAISY = ../ProyectoFinal/dependencies/DaisySP/DaisySP-LGPL/Source
 CXXFLAGS = -Iinclude -I$(DAISY) -I$(DAISY)/Utility -I$(DAISY)/Control \
            -I$(DAISY)/Effects -Wall -O2 -std=c++14
 
