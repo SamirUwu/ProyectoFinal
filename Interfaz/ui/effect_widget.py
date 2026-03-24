@@ -10,7 +10,7 @@ class EffectWidget(QWidget):
         "TONE":       (0, 1, ""),
         "OUTPUT":     (0, 1, ""),
         "TIME":       (1, 1000, "ms"),
-        "FEEDBACK":   (0, 0.8, ""),
+        "FEEDBACK":   (0, 1, ""),
         "MIX":        (0, 0.2, ""),
         "FREQ":       (300, 4000, "Hz"),
         "Q":          (0.1, 10, ""),
@@ -21,7 +21,7 @@ class EffectWidget(QWidget):
         "SEMITONES_B":(-12, 12, "st"),
         "MIX_A":      (0, 1, ""),
         "MIX_B":      (0, 1, ""),
-        "LPFREQ": (200, 18000, "Hz"),
+        "LPFREQ": (2000, 10000, "Hz"),
     }
 
     def __init__(self, effect_data):

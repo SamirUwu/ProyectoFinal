@@ -6,12 +6,15 @@ extern "C" {
 #endif
 
 typedef struct {
-    float feedback;  // decay del reverb (0-1)
-    float lpfreq;    // frecuencia del filtro (200-20000 Hz)
-    float mix;       // wet/dry (0-1)
+    float feedback; 
+    float lpfreq;    
+    float mix;      
 } Reverb;
 
+// Inicializa parámetros
 void  Reverb_init(Reverb *rv, float feedback, float lpfreq, float mix);
+
+// Procesa una muestra
 float Reverb_process(Reverb *rv, float input);
 
 #ifdef __cplusplus
