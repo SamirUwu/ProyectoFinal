@@ -5,6 +5,8 @@ DAISY = ../dependencies/DaisySP/Source
 CXXFLAGS = -Iinclude -I$(DAISY) -I$(DAISY)/Utility -I$(DAISY)/Control \
            -I$(DAISY)/Effects -Wall -O2 -std=c++14
 
+CFLAGS = $(CXXFLAGS)
+
 C_SRC   = $(filter-out src/chorus.c src/pitch_shifter.c src/overdrive.c, $(wildcard src/*.c))
 
 CPP_SRC = src/chorus.cpp src/pitch_shifter.cpp src/overdrive.cpp \
