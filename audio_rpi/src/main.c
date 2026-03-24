@@ -114,7 +114,7 @@ float process_effect(int fx_id, float sig,
         case FX_PITCHSHIFTER: return PitchShifter_process(pitch, sig);
         case FX_DELAY:        return Delay_process(delay, sig);
         case FX_PHASER:       return Phaser_process(phaser, sig);
-        case FX_REVERB:       return Reverb_process(reverb, sig);
+        case FX_REVERB:       return Reverb_process(&reverb, sig);
         default:              return sig;
     }
 }
@@ -138,7 +138,7 @@ int main()
     Flanger      flanger; Flanger_init(&flanger, 0.25f, 0.7f, 0.3f, 0.5f);
     PitchShifter pitch;   PitchShifter_init(&pitch, 7.0f, 0.5f);
     Phaser       phaser;  Phaser_init(&phaser, 0.5f, 0.7f, 0.3f, 0.5f);
-    Reverb       reverb;  Reverb_init(&reverb, );
+    Reverb       reverb;  Reverb_init(&reverb, 0.8f, 8000.0f, 0.3f);
 
     ParamMap map[] = {
         // Overdrive — interfaz manda 0-1, gain necesita escala
