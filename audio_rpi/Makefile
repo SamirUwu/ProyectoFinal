@@ -9,7 +9,6 @@ C_SRC   = $(filter-out src/chorus.c src/pitch_shifter.c src/overdrive.c, $(wildc
 CPP_SRC = src/chorus.cpp src/pitch_shifter.cpp src/overdrive.cpp \
           $(DAISY)/Control/phasor.cpp \
           $(DAISY)/Effects/overdrive.cpp \
-          $(DAISY)/Effects/reverbsc.cpp
 
 C_OBJ   = $(C_SRC:.c=.o)
 CPP_OBJ = $(CPP_SRC:.cpp=.o)
