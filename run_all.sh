@@ -1,23 +1,40 @@
 #!/bin/bash
 
 echo "Limpiando procesos viejos..."
-pkill -f main    # tu servidor C
-pkill -f main.py # la interfaz Python
+pkill -f audio_engine
+pkill -f main.py
 sleep 0.5
 
-# Ejecutable C (socket server)
+# ── C audio engine ────────────────────────────────────────────────────────────
 cd audio_rpi
 echo "Iniciando servidor C..."
-./audio_engine & # ejecutable de C
-sleep 0.5        # espera a que el socket se cree
 
-# Activar virtual environment y correr Python GUI
+# taskset 0x1 = pin to core 0 exclusively for audio
+# sudo needed for SCHED_FIFO + mlockall
+sudo taskset 0x1 ./audio_engine &
+AUDIO_PID=$!
+
+# Wait until the socket actually exists instead of blind sleep
+echo "Esperando socket..."
+for i in $(seq 1 20); do
+    [ -S /tmp/audio_socket ] && break
+    sleep 0.1
+done
+
+if [ ! -S /tmp/audio_socket ]; then
+    echo "ERROR: socket no apareció, revisar audio_engine"
+    kill $AUDIO_PID 2>/dev/null
+    exit 1
+fi
+echo "Socket listo."
+
+# ── Python GUI ────────────────────────────────────────────────────────────────
 cd ../Interfaz
 echo "Activando virtual environment..."
-source ../env/bin/activate # o| venv/bin/activate si usas venv
+source ../env/bin/activate
 
+# Pin GUI to cores 1-3, leaving core 0 free for audio
 echo "Iniciando interfaz..."
-python main.py &
+taskset 0x6 python main.py &
 
-# Mantener el script activo mientras corren todos
 wait
