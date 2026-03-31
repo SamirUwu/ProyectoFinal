@@ -84,3 +84,22 @@ El entorno virtual debe activarse antes de ejecutar la interfaz. Leer requiremen
 ---
 
 https://www.mediafire.com/file/2sd98dhd92951xq/RJ+Pasin+-+Free+Guitar+Samples.zip
+
+
+FIXING RPI4 AUDIO PROBLEM:
+
+
+
+Extra one-time RPi4 setup
+Run these once on the Pi — they persist across reboots:
+Give your binary real-time caps so you don't need sudo every time:
+bashsudo setcap cap_sys_nice,cap_ipc_lock+ep ~/your_project/audio_rpi/audio_engine
+After this you can remove sudo from the script.
+
+Set CPU governor to performance (prevents frequency scaling stalls):
+bashecho performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor
+Add that line to the top of your run_all.sh to apply it every run.
+
+Quick test to confirm it's WSL, not your code
+On the RPi4, run this before anything else:
+bashsudo aplay -D default --duration=3 /usr/share/sounds/alsa/Front_Center.wav
