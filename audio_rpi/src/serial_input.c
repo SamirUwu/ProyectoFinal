@@ -146,7 +146,6 @@ int serial_read_packet(int fd, uint16_t *out_samples)
 {
     if (find_sync(fd) < 0) return -1;
 
-    // El payload son SERIAL_PACKET_SAMPLES * 2 bytes (little-endian uint16)
     uint8_t raw[SERIAL_PACKET_SAMPLES * 2];
     if (read_exact(fd, raw, sizeof(raw)) < 0) {
         fprintf(stderr, "[serial] timeout leyendo payload\n");

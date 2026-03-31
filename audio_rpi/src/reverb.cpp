@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 // ===================== CONFIG =====================
-#define DEFAULT_SRATE 48000.0
+#define DEFAULT_SRATE 44100
 #define DSY_REVERBSC_MAX_SIZE 98936
 #define DELAYPOS_SHIFT 28
 #define DELAYPOS_SCALE 0x10000000

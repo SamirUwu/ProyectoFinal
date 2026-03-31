@@ -33,9 +33,13 @@
 #define SERIAL_PORT NULL
 #define SERIAL_BAUD  460800
 
-// =============================================================================
+// FIX #1: Acumular N batches antes de escribir a ALSA para tener un
+// periodo más grande y reducir la frecuencia de xruns en la RPi4.
+// 4 × 128 = 512 frames → ~11.6 ms de margen por escritura.
+#define ALSA_WRITE_BATCHES 4
+#define ALSA_PERIOD_FRAMES (SERIAL_PACKET_SAMPLES * ALSA_WRITE_BATCHES)  // 512
+
 // ALSA
-// =============================================================================
 static snd_pcm_t *alsa_init(unsigned int sample_rate)
 {
     snd_pcm_t *handle;
@@ -53,8 +57,8 @@ static snd_pcm_t *alsa_init(unsigned int sample_rate)
     snd_pcm_hw_params_set_channels(handle, params, 1);
     snd_pcm_hw_params_set_rate(handle, params, sample_rate, 0);
 
-    snd_pcm_uframes_t buffer_size = 16384;
-    snd_pcm_uframes_t period_size = SERIAL_PACKET_SAMPLES;
+    snd_pcm_uframes_t buffer_size = 4096;
+    snd_pcm_uframes_t period_size = ALSA_PERIOD_FRAMES;
     snd_pcm_hw_params_set_buffer_size_near(handle, params, &buffer_size);
     snd_pcm_hw_params_set_period_size_near(handle, params, &period_size, 0);
 
@@ -64,13 +68,29 @@ static snd_pcm_t *alsa_init(unsigned int sample_rate)
         return NULL;
     }
 
-    printf("ALSA listo a %u Hz\n", sample_rate);
+    snd_pcm_uframes_t actual_period, actual_buffer;
+    snd_pcm_hw_params_get_period_size(params, &actual_period, 0);
+    snd_pcm_hw_params_get_buffer_size(params, &actual_buffer);
+    printf("ALSA listo a %u Hz | period=%lu frames | buffer=%lu frames\n",
+           sample_rate, actual_period, actual_buffer);
+
     return handle;
 }
 
-// =============================================================================
+static void alsa_write_safe(snd_pcm_t *pcm, const int16_t *buf, snd_pcm_uframes_t frames)
+{
+    int rc = snd_pcm_writei(pcm, buf, frames);
+    if (rc == -EPIPE) {
+        // Underrun: preparar y reintentar
+        snd_pcm_prepare(pcm);
+        snd_pcm_writei(pcm, buf, frames);
+    } else if (rc < 0) {
+        snd_pcm_recover(pcm, rc, 0);
+        snd_pcm_writei(pcm, buf, frames);
+    }
+}
+
 // IDs de efectos
-// =============================================================================
 #define FX_OVERDRIVE     0
 #define FX_WAH           1
 #define FX_DELAY         2
@@ -87,9 +107,7 @@ int fx_order_count     =  0;
 
 char json_buffer[4096];
 
-// =============================================================================
 // ParamMap
-// =============================================================================
 typedef struct {
     const char *effect_key;
     const char *param_key;
@@ -99,9 +117,7 @@ typedef struct {
     float       offset;
 } ParamMap;
 
-// =============================================================================
 // Dispatcher de efectos
-// =============================================================================
 float process_effect(int fx_id, float sig,
                      Overdrive *od, Wah *wah, Chorus *ch,
                      Flanger *flanger, PitchShifter *pitch, Delay *delay, Phaser *phaser, Reverb *reverb)
@@ -119,16 +135,19 @@ float process_effect(int fx_id, float sig,
     }
 }
 
-// =============================================================================
 // MAIN
-// =============================================================================
 int main()
 {
     struct sched_param sp = { .sched_priority = 50 };
     if (sched_setscheduler(0, SCHED_FIFO, &sp) < 0)
         fprintf(stderr, "[rt] advertencia: no se pudo setear SCHED_FIFO (ejecutar como root?)\n");
-    //Descomentar cuando use la RPI
-    //mlockall(MCL_CURRENT | MCL_FUTURE); 
+
+
+#ifdef __arm__
+    // Solo habilitar en RPi (ARM); en PC de desarrollo puede fallar sin root
+    if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0)
+        fprintf(stderr, "[rt] advertencia: mlockall falló (ejecutar como root?)\n");
+#endif
     
     // --- Inicializar efectos ---
     Delay        delay;   Delay_init(&delay, 1.0f, 0.5f, 0.4f);
@@ -243,6 +262,10 @@ int main()
     float batch_pre[SERIAL_PACKET_SAMPLES];
     float batch_post[SERIAL_PACKET_SAMPLES];
     long  total_samples = 0;
+
+    // FIX #1: buffer acumulador para escribir ALSA_WRITE_BATCHES de golpe
+    int16_t alsa_accum[ALSA_PERIOD_FRAMES];
+    int     alsa_accum_pos = 0;
 
     // =========================================================================
     // LOOP PRINCIPAL
@@ -369,21 +392,28 @@ int main()
             total_samples++;
         }
 
-        // --- Salida por jack ---
-        int16_t pcm_buf[SERIAL_PACKET_SAMPLES];
-        for (int s = 0; s < SERIAL_PACKET_SAMPLES; s++)
-            pcm_buf[s] = (int16_t)(batch_post[s] * 32767.0f);
+        // --- Salida por jack (acumular batches antes de escribir a ALSA) ---
+        for (int s = 0; s < SERIAL_PACKET_SAMPLES; s++) {
+            // FIX #4: clamp antes de convertir a int16 para evitar overflow
+            // que causa clicks cuando un efecto (reverb, overdrive) satura > 1.0f
+            float clamped = batch_post[s];
+            if (clamped >  1.0f) clamped =  1.0f;
+            if (clamped < -1.0f) clamped = -1.0f;
+            alsa_accum[alsa_accum_pos++] = (int16_t)(clamped * 32767.0f);
+        }
 
-        int frames_written = snd_pcm_writei(pcm, pcm_buf, SERIAL_PACKET_SAMPLES);
-        if (frames_written < 0)
-            snd_pcm_recover(pcm, frames_written, 0);
+        // FIX #1: solo llamar writei cuando el acumulador está lleno
+        if (alsa_accum_pos >= ALSA_PERIOD_FRAMES) {
+            alsa_write_safe(pcm, alsa_accum, ALSA_PERIOD_FRAMES);
+            alsa_accum_pos = 0;
+        }
 
         // --- Debug cada ~0.5s ---
         if (total_samples % 22039 < SERIAL_PACKET_SAMPLES)
             printf("audio: input=%f out=%f  cadena=%d efectos\n",
                    batch_pre[0], batch_post[0], fx_order_count);
 
-        // --- Enviar al socket Python ---
+        // --- Enviar al socket Python (no bloquea gracias al MSG_DONTWAIT en socket_server.c) ---
         socket_send_batch(batch_pre, batch_post, SERIAL_PACKET_SAMPLES);
     }
 

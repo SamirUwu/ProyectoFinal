@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>   
+#include <errno.h>   
 
 #define SOCKET_PATH "/tmp/audio_socket"
 
@@ -28,6 +30,10 @@ int socket_init() {
     client_fd = accept(server_fd, NULL, NULL);
     printf("Cliente conectado\n");
 
+    int flags = fcntl(client_fd, F_GETFL, 0);
+    if (flags >= 0)
+        fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
+
     return 0;
 }
 
@@ -38,18 +44,12 @@ int socket_receive(char *buffer, int max_len) {
     return n;
 }
 
-// Legacy — manda un solo par (evitar en el loop de audio)
 int socket_send_two_floats(float pre, float post) {
     float buf[2] = { pre, post };
-    return send(client_fd, buf, sizeof(buf), 0);
+    return send(client_fd, buf, sizeof(buf), MSG_DONTWAIT);
 }
 
-// Nuevo — manda n pares de golpe: [pre0, post0, pre1, post1, ..., preN, postN]
-// pre  : array de n floats (señal antes del efecto)
-// post : array de n floats (señal después del efecto)
-// n    : número de samples (ej: 128)
 int socket_send_batch(const float *pre, const float *post, int n) {
-    // Intercalar pre/post en un buffer contiguo para un solo send()
     float *interleaved = malloc(n * 2 * sizeof(float));
     if (!interleaved) return -1;
 
@@ -59,8 +59,12 @@ int socket_send_batch(const float *pre, const float *post, int n) {
     }
 
     int total = n * 2 * sizeof(float);
-    int sent  = send(client_fd, interleaved, total, 0);
+    int sent = send(client_fd, interleaved, total, MSG_DONTWAIT);
     free(interleaved);
+
+    if (sent < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+        perror("socket_send_batch");
+
     return sent;
 }
 
