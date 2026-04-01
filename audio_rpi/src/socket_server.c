@@ -5,13 +5,13 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>   
-#include <errno.h>   
+#include <fcntl.h>   // FIX #3: necesario para fcntl / O_NONBLOCK
+#include <errno.h>   // FIX #3: necesario para EAGAIN / EWOULDBLOCK
 
 #define SOCKET_PATH "/tmp/audio_socket"
 
 static int server_fd;
-static int client_fd;
+static int client_fd = -1;
 
 int socket_init() {
     struct sockaddr_un addr;
@@ -30,6 +30,9 @@ int socket_init() {
     client_fd = accept(server_fd, NULL, NULL);
     printf("Cliente conectado\n");
 
+    // FIX #3: poner el socket en modo no-bloqueante DESPUÉS de accept.
+    // Así send() retorna EAGAIN en lugar de bloquear el hilo de audio
+    // cuando el buffer del kernel está lleno (Python ocupado renderizando).
     int flags = fcntl(client_fd, F_GETFL, 0);
     if (flags >= 0)
         fcntl(client_fd, F_SETFL, flags | O_NONBLOCK);
@@ -44,11 +47,15 @@ int socket_receive(char *buffer, int max_len) {
     return n;
 }
 
+// Legacy — manda un solo par (evitar en el loop de audio)
 int socket_send_two_floats(float pre, float post) {
     float buf[2] = { pre, post };
     return send(client_fd, buf, sizeof(buf), MSG_DONTWAIT);
 }
 
+// FIX #3: send_batch ya no bloquea el hilo de audio.
+// Si el buffer del kernel está lleno (Python lento) simplemente descarta
+// el frame de visualización — inaudible para el oyente.
 int socket_send_batch(const float *pre, const float *post, int n) {
     float *interleaved = malloc(n * 2 * sizeof(float));
     if (!interleaved) return -1;
@@ -58,12 +65,24 @@ int socket_send_batch(const float *pre, const float *post, int n) {
         interleaved[i * 2 + 1] = post[i];
     }
 
+    // Si no hay cliente válido, no intentar enviar
+    if (client_fd < 0) {
+        free(interleaved);
+        return -1;
+    }
+
     int total = n * 2 * sizeof(float);
     int sent = send(client_fd, interleaved, total, MSG_DONTWAIT);
     free(interleaved);
 
-    if (sent < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
-        perror("socket_send_batch");
+    if (sent < 0) {
+        if (errno == EBADF || errno == EPIPE || errno == ECONNRESET) {
+            // Cliente desconectado — marcar fd como inválido y callar
+            client_fd = -1;
+        } else if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            perror("socket_send_batch");
+        }
+    }
 
     return sent;
 }
