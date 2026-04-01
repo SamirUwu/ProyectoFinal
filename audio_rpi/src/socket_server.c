@@ -1,12 +1,13 @@
 #include "socket_server.h"
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>   // FIX #3: necesario para fcntl / O_NONBLOCK
-#include <errno.h>   // FIX #3: necesario para EAGAIN / EWOULDBLOCK
+#include <fcntl.h>
+#include <errno.h>
 
 #define SOCKET_PATH "/tmp/audio_socket"
 
@@ -24,6 +25,7 @@ int socket_init() {
     unlink(SOCKET_PATH);
 
     bind(server_fd, (struct sockaddr*)&addr, sizeof(addr));
+    chmod(SOCKET_PATH, 0777);  // cualquier usuario puede conectarse
     listen(server_fd, 1);
 
     printf("Esperando cliente...\n");
