@@ -160,15 +160,11 @@ class MainWindow(QWidget):
                 
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
-        self.timer.start(100) #Elegir velocidad en la que se generan los puntos
+        self.timer.start(100)
 
         self.server = TcpServer()
         self.server.json_received.connect(self.handle_remote_json)
         self.server.start()
-
-    def update_buffers_batch(self, pre_batch, post_batch):
-        self.pre_buffer.extend(pre_batch)
-        self.signal_buffer.extend(post_batch)
 
     def update_effect_order(self, *args):
         new_order = []
@@ -184,13 +180,10 @@ class MainWindow(QWidget):
         self.receiver.send_json(json_data)
         print(self.model.to_json())
 
-    def handle_remote_json(self,data):
+    def handle_remote_json(self, data):
         print("Actualizando desde el celular")
-
         self.model.load_from_json(data)
-
         self.load_effects()
-
         print("Nuevo estado: ")
         print(self.model.to_json())
     
@@ -212,25 +205,19 @@ class MainWindow(QWidget):
             json.dump(presets_data, f, indent=2)
 
     def on_preset_changed(self, preset_key):
-        # Guardar el preset actual antes de cambiar
         self._save_current_preset()
-
-        # Cargar el nuevo preset
         self.current_preset_key = preset_key
         preset = self.presets_data[preset_key]
         self.model = PresetModel(preset["name"])
         self.model.set_effects(preset.get("effects", []))
-
         self.signal_buffer.clear()
         self.pre_buffer.clear()
         self.load_effects()
-
         json_data = self.model.to_json()
         self.receiver.send_json(json_data)
 
     def _save_current_preset(self):
         import json as _json
-        # Leer el JSON del modelo actual y guardarlo en el dict en memoria
         raw = self.model.to_json()
         parsed = _json.loads(raw)
         self.presets_data[self.current_preset_key] = {
@@ -239,7 +226,6 @@ class MainWindow(QWidget):
         }
         self._save_presets_file(self.presets_data)
 
-    #Añadir efectos logic
     def add_effect(self):
         if len(self.model.effects) >= 4:
             print("Max 4 effects per parameter")
@@ -283,7 +269,6 @@ class MainWindow(QWidget):
         json_data = self.model.to_json()
         self.receiver.send_json(json_data)  
     
-    #Cargar efectos
     def load_effects(self):
         self.effects_list.clear()
         
@@ -301,21 +286,19 @@ class MainWindow(QWidget):
             self.effects_list.setItemWidget(item, widget)
 
     def default_params(self, effect_type):
-
+        
         defaults = {
-            "Overdrive": {"GAIN":0.5,"TONE":0.5,"OUTPUT":0.5},
-            "Delay": {"TIME":0.5,"FEEDBACK":0.3,"MIX":0.2},
-            "Wah": {"FREQ":0.5,"Q":0.8,"LEVEL":1.0},
-            "Flanger": {"RATE":0.5,"DEPTH":0.3,"FEEDBACK":0.2,"MIX":0.5},
-            "Chorus": {"RATE": 0.5, "DEPTH": 0.3, "FEEDBACK": 0.0, "MIX": 0.2},
-            "Phaser": {"RATE":0.5,"DEPTH":0.7,"FEEDBACK":0.3,"MIX":0.5},
-            "PitchShifter": {"SEMITONES":0.0, "SEMITONES_B": 0.0, "MIX_A": 1.0, "MIX_B": 0.0, "MIX": 0.5},
-            "Reverb": {"FEEDBACK": 0.6, "LPFREQ": 8000.0, "MIX": 0.3}
+            "Overdrive":    {"GAIN": 0.5,    "TONE": 0.5,   "OUTPUT": 0.5},
+            "Delay":        {"TIME": 300.0,  "FEEDBACK": 0.3, "MIX": 0.15},
+            "Wah":          {"FREQ": 1000.0, "Q": 0.8,      "LEVEL": 1.0},
+            "Flanger":      {"RATE": 0.5,    "DEPTH": 0.3,  "FEEDBACK": 0.2, "MIX": 0.15},
+            "Chorus":       {"RATE": 0.5,    "DEPTH": 0.3,  "FEEDBACK": 0.0, "MIX": 0.15},
+            "Phaser":       {"RATE": 0.5,    "DEPTH": 0.7,  "FEEDBACK": 0.3, "MIX": 0.15},
+            "PitchShifter": {"SEMITONES": 0.0, "SEMITONES_B": 0.0, "MIX_A": 1.0, "MIX_B": 0.0, "MIX": 0.5},
+            "Reverb":       {"FEEDBACK": 0.6, "LPFREQ": 8000.0, "MIX": 0.15},
         }
-
         return defaults[effect_type]
     
-    #Generación del Json
     def generate_json(self):
         print("JSON ready for C: ")
         print(self.model.to_json())
@@ -325,8 +308,6 @@ class MainWindow(QWidget):
 
     def update_pre_buffer(self, value):
         self.pre_buffer.append(value)
-        #if len(self.signal_buffer) % 200 == 0:
-            #print("post buffer:", len(self.signal_buffer))
     
     def update_buffers_batch(self, pre_batch, post_batch):
         VREF = 3.3
@@ -342,7 +323,7 @@ class MainWindow(QWidget):
         if len(y) < N_FFT:
             y = np.pad(y, (0, N_FFT - len(y)), 'constant')
         else:
-            y = y[-N_FFT:]  # usar los samples más recientes
+            y = y[-N_FFT:]
 
         y -= np.mean(y)  
         window = np.blackman(N_FFT)
@@ -353,7 +334,7 @@ class MainWindow(QWidget):
         if prev is None or prev.shape != Y_db.shape:
             setattr(self, accum_key, Y_db)
         else:
-            smoothed = 0.7 * prev + 0.3 * Y_db  # α=0.3 
+            smoothed = 0.7 * prev + 0.3 * Y_db
             setattr(self, accum_key, smoothed)
 
         freqs = np.fft.rfftfreq(N_FFT, d=1.0 / self.SAMPLE_RATE)
@@ -410,28 +391,22 @@ class MainWindow(QWidget):
 
     def handle_param_change(self, effect_id, param, value):
         print("MainWindow updating model")
-
         self.model.update_param(effect_id, param, value)
-
         json_data = self.model.to_json()
-
         print("JSON ready for C++:")
         print(json_data)
-
         self.receiver.send_json(json_data)
         
     def toggle_fft(self):
         self.show_fft = self.toggle_fft_btn.isChecked()
         if self.show_fft:
             self.toggle_fft_btn.setText("Show Time")
-            # Activar fill para FFT
             self.curve_pre.setFillLevel(-200)
             self.curve_post.setFillLevel(-200)
             self.curve_pre.setBrush(pg.mkBrush(0, 140, 255, 60))
             self.curve_post.setBrush(pg.mkBrush(0, 140, 255, 60))
         else:
             self.toggle_fft_btn.setText("Show FFT")
-            # Desactivar fill para tiempo
             self.curve_pre.setFillLevel(None)
             self.curve_post.setFillLevel(None)
             self.curve_pre.setBrush(None)

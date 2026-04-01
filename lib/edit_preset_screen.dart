@@ -5,14 +5,26 @@ import 'edit_effect_screen.dart';
 const List<String> availableEffects = [
   'Delay',
   'Overdrive',
-  //'Distortion',
   'Chorus',
   'Flanger',
   'Wah',
   'Reverb',
   'Phaser',
-  'Pitch Shifter'
+  'PitchShifter',
 ];
+
+// Parámetros default que matchean exactamente con main_window.py
+const Map<String, Map<String, double>> effectDefaults = {
+  'Overdrive':    {'GAIN': 0.5,    'TONE': 0.5,   'OUTPUT': 0.5},
+  'Delay':        {'TIME': 300.0,  'FEEDBACK': 0.3, 'MIX': 0.15},
+  'Wah':          {'FREQ': 1000.0, 'Q': 0.8,      'LEVEL': 1.0},
+  'Flanger':      {'RATE': 0.5,    'DEPTH': 0.3,  'FEEDBACK': 0.2, 'MIX': 0.15},
+  'Chorus':       {'RATE': 0.5,    'DEPTH': 0.3,  'FEEDBACK': 0.0, 'MIX': 0.15},
+  'Phaser':       {'RATE': 0.5,    'DEPTH': 0.7,  'FEEDBACK': 0.3, 'MIX': 0.15},
+  'PitchShifter': {'SEMITONES': 0.0, 'SEMITONES_B': 0.0, 'MIX_A': 1.0, 'MIX_B': 0.0, 'MIX': 0.5},
+  'Reverb':       {'FEEDBACK': 0.6, 'LPFREQ': 8000.0, 'MIX': 0.15},
+};
+
 class EditPresetScreen extends StatefulWidget {
   final String presetName;
   final Map<String, double>? initialValues;
@@ -28,17 +40,9 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
 
   @override
   void initState() {
-    
     super.initState();
-
     final box = Hive.box('preset_data');
-    //debugPrint('HIVE CONTENIDO COMPLETO: ${box.toMap()}');
-
     final saved = box.get(widget.presetName);
-
-    //debugPrint('HIVE GET (${widget.presetName}): $saved');
-
-
     if (saved != null) {
       presetData = Map<String, Map<String, double>>.from(
         saved.map(
@@ -46,8 +50,8 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
         ),
       );
     }
-    //debugPrint('PRESET CARGADO: $presetData');
   }
+
   void _confirmDeleteEffect(String effect) {
     showDialog(
       context: context,
@@ -76,11 +80,9 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
   void _onReorder(int oldIndex, int newIndex) {
     setState(() {
       if (newIndex > oldIndex) newIndex--;
-
       final keys = presetData.keys.toList();
       final item = keys.removeAt(oldIndex);
       keys.insert(newIndex, item);
-
       final newMap = <String, Map<String, double>>{};
       for (final k in keys) {
         newMap[k] = presetData[k]!;
@@ -110,7 +112,10 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
             onTap: () {
               Navigator.pop(context);
               setState(() {
-                presetData[effect] = {};   
+                // FIX: usar defaults en vez de mapa vacío
+                presetData[effect] = Map<String, double>.from(
+                  effectDefaults[effect] ?? {},
+                );
               });
             },
           );
@@ -126,9 +131,6 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
       for (final entry in presetData.entries)
         entry.key: Map<String, double>.from(entry.value)
     });
-
-    //debugPrint('GUARDADO EN DISPOSE: $presetData');
-    //debugPrint('HIVE EN EDIT PRESET: ${Hive.box('preset_data').toMap()}');
     super.dispose();
   }
 
@@ -145,7 +147,6 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
               for (final entry in presetData.entries)
                 entry.key: Map<String, double>.from(entry.value)
             });
-            //debugPrint('AUTO-GUARDADO PRESET: $presetData');
             Navigator.pop(context);
           },
         ),
@@ -171,7 +172,6 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
                 }).toList(),
               ),
             ),
-
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: _showAddEffectDialog,
@@ -210,7 +210,6 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
                     ),
                   ),
                 );
-
                 if (result != null) {
                   setState(() {
                     presetData[title] = result;
@@ -220,7 +219,6 @@ class _EditPresetScreenState extends State<EditPresetScreen> {
               child: Text(title, style: const TextStyle(fontSize: 18)),
             ),
           ),
-
           IconButton(
             icon: const Icon(Icons.delete, color: Colors.white),
             onPressed: () => _confirmDeleteEffect(title),

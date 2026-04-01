@@ -21,23 +21,20 @@ class PresetModel:
         self.effects[effect_index]["enabled"] = state
 
     def load_from_json(self, data):
-
         self.name = data.get("name", self.name)
-
         incoming_effects = data.get("effects", [])
-
         self.effects = []
 
         for index, effect in enumerate(incoming_effects):
+            # FIX: si Flutter no manda id (o manda null), generar uno
+            effect_id = effect.get("id") or f"fx_{index + 1}"
 
-            effect_with_id = {
-                "id": effect.get("id"),  
-                "type": effect["type"],
+            self.effects.append({
+                "id":      effect_id,
+                "type":    effect["type"],
                 "enabled": effect.get("enabled", True),
-                "params": effect.get("params", {})
-            }
-
-            self.effects.append(effect_with_id)
+                "params":  effect.get("params", {})
+            })
 
     def to_json(self):
         payload = {
