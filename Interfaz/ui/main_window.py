@@ -43,7 +43,7 @@ class MainWindow(QWidget):
         
         #Presets Dropdown
         self.presets_data = self._load_presets_file()
-        self.current_preset_key = "Preset 1"
+        self.current_preset_key = next(iter(self.presets_data))
 
         self.preset_dropdown = QComboBox()
         self.preset_dropdown.addItems(list(self.presets_data.keys()))
@@ -82,7 +82,7 @@ class MainWindow(QWidget):
         self.effects_list.setDragDropMode(QListWidget.DragDropMode.InternalMove)
         self.effects_list.model().rowsMoved.connect(self.update_effect_order)
         
-        self.model = PresetModel("Preset1")
+        self.model = PresetModel(self.current_preset_key)
         first = self.presets_data[self.current_preset_key]
         self.model.set_effects(first.get("effects", []))
 
