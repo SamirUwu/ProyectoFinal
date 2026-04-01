@@ -49,6 +49,7 @@ class _PresetScreenState extends State<PresetScreen> {
     }
 
     final List<Map<String, dynamic>> effectsList = [];
+    int i = 1;
 
     data.forEach((effectName, params) {
       final Map<String, double> cleanParams = {};
@@ -57,10 +58,12 @@ class _PresetScreenState extends State<PresetScreen> {
       });
 
       effectsList.add({
+        "id": "fx_$i",       // FIX: Python necesita id para remove_effect
         "type": effectName.toString(),
         "enabled": true,
         "params": cleanParams,
       });
+      i++;
     });
 
     final payload = {
