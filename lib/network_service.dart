@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class NetworkService {
-  static const String _host = "10.42.0.1";  
+  static const String _host = "192.168.1.150";  
   static const int _port = 5000;
 
   static Socket? _socket;

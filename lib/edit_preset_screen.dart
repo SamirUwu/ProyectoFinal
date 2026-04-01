@@ -5,10 +5,13 @@ import 'edit_effect_screen.dart';
 const List<String> availableEffects = [
   'Delay',
   'Overdrive',
-  'Distortion',
+  //'Distortion',
   'Chorus',
   'Flanger',
   'Wah',
+  'Reverb',
+  'Phaser',
+  'Pitch Shifter'
 ];
 class EditPresetScreen extends StatefulWidget {
   final String presetName;

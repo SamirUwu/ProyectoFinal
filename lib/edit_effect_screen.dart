@@ -18,36 +18,55 @@ class EffectParam {
 }
 
 final Map<String, List<EffectParam>> effectParams = {
-  'Delay': [
-    EffectParam('TIME', 0, 2000),
-    EffectParam('FEEDBACK', 0, 1),
-    EffectParam('MIX', 0, 1),
-  ],
   'Overdrive': [
-    EffectParam('DRIVE', 0, 1),
-    EffectParam('TONE', 0, 1),
-    EffectParam('LEVEL', 0, 1),
+    EffectParam('GAIN',   0,   1),   
+    EffectParam('TONE',   0,   1),
+    EffectParam('OUTPUT', 0,   1),    
   ],
-  'Distortion': [
-    EffectParam('GAIN', 0, 1),
-    EffectParam('TONE', 0, 1),
-    EffectParam('OUTPUT', 0, 1),
-  ],
-  'Chorus': [
-    EffectParam('RATE', 0, 10),
-    EffectParam('DEPTH', 0, 1),
-    EffectParam('MIX', 0, 1),
-  ],
-  'Flanger': [
-    EffectParam('RATE', 0, 10),
-    EffectParam('DEPTH', 0, 1),
+  //'Distortion': [
+  //  EffectParam('GAIN', 0, 1),
+  //  EffectParam('TONE', 0, 1),
+  //  EffectParam('OUTPUT', 0, 1),
+  //],
+  'Delay': [
+    EffectParam('TIME',     1, 1000),
     EffectParam('FEEDBACK', 0, 1),
-    EffectParam('MIX', 0, 1),
+    EffectParam('MIX',      0, 0.3),    
   ],
   'Wah': [
-    EffectParam('FREQ', 300, 3000),
-    EffectParam('Q', 0.1, 10),
-    EffectParam('LEVEL', 0, 1),
+    EffectParam('FREQ',  300, 4000),  
+    EffectParam('Q',     0.1, 10),
+    EffectParam('LEVEL', 0,   1),
+  ],
+  'Flanger': [
+    EffectParam('RATE',     0.1, 3),  
+    EffectParam('DEPTH',    0,   1),
+    EffectParam('FEEDBACK', 0,   1),
+    EffectParam('MIX',      0,   0.3),
+  ],
+  'Chorus': [
+    EffectParam('RATE',     0.1, 3),  
+    EffectParam('DEPTH',    0,   1),
+    EffectParam('FEEDBACK', 0,   1),  
+    EffectParam('MIX',      0,   0.3),
+  ],
+  'Phaser': [                         
+    EffectParam('RATE',     0.1, 3),
+    EffectParam('DEPTH',    0,   1),
+    EffectParam('FEEDBACK', 0,   1),
+    EffectParam('MIX',      0,   0.3),
+  ],
+  'PitchShifter': [                   
+    EffectParam('SEMITONES',   -12, 12),
+    EffectParam('SEMITONES_B', -12, 12),
+    EffectParam('MIX_A',       0,   1),
+    EffectParam('MIX_B',       0,   1),
+    EffectParam('MIX',         0,   1),
+  ],
+  'Reverb': [                        
+    EffectParam('FEEDBACK', 0,    1),
+    EffectParam('LPFREQ',   2000, 10000),
+    EffectParam('MIX',      0,    0.3),
   ],
 };
 

@@ -11,7 +11,7 @@ class EffectWidget(QWidget):
         "OUTPUT":     (0, 1, ""),
         "TIME":       (1, 1000, "ms"),
         "FEEDBACK":   (0, 1, ""),
-        "MIX":        (0, 0.2, ""),
+        "MIX":        (0, 0.3, ""),
         "FREQ":       (300, 4000, "Hz"),
         "Q":          (0.1, 10, ""),
         "LEVEL":      (0, 1, ""),
