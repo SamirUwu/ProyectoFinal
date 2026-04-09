@@ -7,6 +7,7 @@
 #include <sndfile.h>
 #include <sched.h>
 #include <sys/mman.h>
+#include <fcntl.h>
 
 #include "../include/socket_server.h"
 #include "../include/serial_input.h"
@@ -27,7 +28,8 @@
 // SIM_MODE 0 → lectura real desde ESP32 por serial
 // SIM_MODE 1 → señal sin() simulada a 440 Hz
 // SIM_MODE 2 → loop de archivo WAV
-#define SIM_MODE  2
+#define SIM_MODE  3
+#define PIPE_PATH "/tmp/ni6009_pipe"   // ← add this line
 #define WAV_FILE  "UribeUribe_44k.wav"
 
 #define SERIAL_PORT NULL
@@ -252,6 +254,22 @@ int main()
     }
     printf("[SIM_MODE 2] Normalizacion: max=%.4f %s\n", 
            wav_max, wav_max > 1.0f ? "(normalizado)" : "(ok)");
+
+#elif SIM_MODE == 3
+    // ── NI USB-6009 via named pipe ──────────────────────────────────────────
+    // The Python script ni6009_feeder.py writes packets in the same binary
+    // format as the ESP32: 4-byte sync word + PACKET_SAMPLES * uint16_t LE.
+    // We reuse serial_read_packet() which already handles sync + payload.
+    printf("[SIM_MODE 3] Waiting for ni6009_feeder.py on pipe %s ...\n", PIPE_PATH);
+    int pipe_fd = open(PIPE_PATH, O_RDONLY);   // blocks until Python opens write end
+    if (pipe_fd < 0) {
+        fprintf(stderr, "[SIM_MODE 3] Could not open pipe %s: %s\n",
+                PIPE_PATH, strerror(errno));
+        return 1;
+    }
+    printf("[SIM_MODE 3] Pipe open — streaming from NI USB-6009\n");
+    uint16_t packet3[SERIAL_PACKET_SAMPLES];   // reuse same packet buffer name
+ 
 #endif
 
     // --- ALSA y socket ---
@@ -361,6 +379,15 @@ int main()
         for (int s = 0; s < SERIAL_PACKET_SAMPLES; s++)
             batch_pre[s] = serial_adc_to_float(packet[s]);
 
+#elif SIM_MODE == 3
+    // serial_read_packet() works on any file descriptor, not just serial ports.
+    if (serial_read_packet(pipe_fd, packet3) < 0) {
+        fprintf(stderr, "[SIM_MODE 3] pipe read error or feeder closed\n");
+        break;   // exit the audio loop cleanly
+    }
+    for (int s = 0; s < SERIAL_PACKET_SAMPLES; s++)
+        batch_pre[s] = serial_adc_to_float(packet3[s]);
+
 #elif SIM_MODE == 1
         for (int s = 0; s < SERIAL_PACKET_SAMPLES; s++) {
             float t = (float)sim_i / SAMPLE_RATE;
@@ -422,6 +449,8 @@ int main()
     serial_close(serial_fd);
 #elif SIM_MODE == 2
     free(wav_data);
+#elif SIM_MODE == 3
+    close(pipe_fd);
 #endif
     snd_pcm_close(pcm);
     socket_close();
