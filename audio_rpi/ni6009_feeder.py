@@ -2,8 +2,9 @@
 ni6009_feeder.py
 ────────────────
 Reads audio from a NI USB-6009 analog input (ai0) and writes packets
-into a named pipe (/tmp/ni6009_pipe) using the same binary protocol
-as the ESP32 sketch, so the C audio engine can consume it via SIM_MODE 3.
+into a Windows named pipe (\\\\.\\pipe\\ni6009) using the same binary
+protocol as the ESP32 sketch, so the C audio engine can consume it via
+SIM_MODE 3.
 
 Packet format (matches serial_input.h):
   [0xAA, 0x55, 0xFF, 0x00]  ← 4-byte sync word
@@ -14,20 +15,22 @@ We normalise to the same 0-4095 ADC range the ESP32 uses so the
 existing serial_adc_to_float() conversion works without changes.
 
 Usage:
-  pip install nidaqmx
+  pip install nidaqmx pywin32
   python ni6009_feeder.py [--device Dev1] [--channel ai0] [--rate 44100]
 """
 
 import argparse
 import struct
-import os
 import sys
 import time
 import signal
+import win32pipe
+import win32file
+import pywintypes
 
 PACKET_SAMPLES = 128
 SYNC_WORD = bytes([0xAA, 0x55, 0xFF, 0x00])
-PIPE_PATH = "/tmp/ni6009_pipe"
+PIPE_NAME = r"\\.\pipe\ni6009"
 
 # ADC emulation range (matches ESP32 12-bit: 0-4095, midpoint 2048)
 ADC_BITS   = 12
@@ -54,18 +57,16 @@ def build_packet(samples_volts, v_min, v_max):
     return SYNC_WORD + payload
 
 def open_pipe():
-    """Create (or reuse) the named pipe and open it for writing."""
-    if not os.path.exists(PIPE_PATH):
-        os.mkfifo(PIPE_PATH)
-        print(f"[feeder] created pipe at {PIPE_PATH}")
-    else:
-        print(f"[feeder] reusing existing pipe at {PIPE_PATH}")
-
-    print("[feeder] waiting for C reader to open the pipe…")
-    # open() blocks until the reader (C process) opens the other end
-    fd = open(PIPE_PATH, "wb", buffering=0)
-    print("[feeder] pipe open — streaming audio")
-    return fd
+    """Create the Windows named pipe and wait for the C reader to connect."""
+    pipe = win32pipe.CreateNamedPipe(
+        PIPE_NAME,
+        win32pipe.PIPE_ACCESS_OUTBOUND,
+        win32pipe.PIPE_TYPE_BYTE | win32pipe.PIPE_WAIT,
+        1, 65536, 65536, 0, None)
+    print("[feeder] waiting for C reader to connect...")
+    win32pipe.ConnectNamedPipe(pipe, None)
+    print("[feeder] pipe connected — streaming audio")
+    return pipe
 
 def main():
     global running
@@ -85,8 +86,8 @@ def main():
         print("[feeder] ERROR: nidaqmx not installed. Run:  pip install nidaqmx")
         sys.exit(1)
 
-    signal.signal(signal.SIGINT,  signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT,   signal_handler)
+    signal.signal(signal.SIGBREAK, signal_handler)
 
     # Voltage range depends on terminal config
     if args.mode == "rse":
@@ -103,7 +104,7 @@ def main():
     print(f"         voltage range: {v_min} V – {v_max} V")
     print(f"         packet size:   {PACKET_SAMPLES} samples")
 
-    pipe_fd = open_pipe()
+    pipe_handle = open_pipe()
 
     try:
         with nidaqmx.Task() as task:
@@ -134,8 +135,8 @@ def main():
                 packet = build_packet(samples, v_min, v_max)
 
                 try:
-                    pipe_fd.write(packet)
-                except BrokenPipeError:
+                    win32file.WriteFile(pipe_handle, packet)
+                except pywintypes.error:
                     print("[feeder] pipe reader closed — exiting")
                     break
 
@@ -149,7 +150,7 @@ def main():
     except nidaqmx.errors.DaqError as e:
         print(f"[feeder] DAQmx error: {e}")
     finally:
-        pipe_fd.close()
+        win32file.CloseHandle(pipe_handle)
         print("[feeder] done")
 
 if __name__ == "__main__":
