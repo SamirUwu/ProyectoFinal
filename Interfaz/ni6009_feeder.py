@@ -2,8 +2,9 @@
 ni6009_feeder.py
 ────────────────
 Reads audio from a NI USB-6009 analog input (ai0) and writes packets
-into a named pipe (/tmp/ni6009_pipe) using the same binary protocol
-as the ESP32 sketch, so the C audio engine can consume it via SIM_MODE 3.
+into a Windows named pipe (\\\\.\\pipe\\ni6009) using the same binary
+protocol as the ESP32 sketch, so the C audio engine can consume it via
+SIM_MODE 3.
 
 Packet format (matches serial_input.h):
   [0xAA, 0x55, 0xFF, 0x00]  ← 4-byte sync word
@@ -14,20 +15,22 @@ We normalise to the same 0-4095 ADC range the ESP32 uses so the
 existing serial_adc_to_float() conversion works without changes.
 
 Usage:
-  pip install nidaqmx
+  pip install nidaqmx pywin32
   python ni6009_feeder.py [--device Dev1] [--channel ai0] [--rate 44100]
 """
 
 import argparse
 import struct
-import os
 import sys
 import time
 import signal
+import win32pipe
+import win32file
+import pywintypes
 
 PACKET_SAMPLES = 128
 SYNC_WORD = bytes([0xAA, 0x55, 0xFF, 0x00])
-PIPE_PATH = "/tmp/ni6009_pipe"
+PIPE_NAME = r"\\.\pipe\ni6009"
 
 # ADC emulation range (matches ESP32 12-bit: 0-4095, midpoint 2048)
 ADC_BITS   = 12
@@ -54,6 +57,7 @@ def build_packet(samples_volts, v_min, v_max):
     return SYNC_WORD + payload
 
 def open_pipe():
+    """Create the Windows named pipe and wait for the C reader to connect."""
     pipe = win32pipe.CreateNamedPipe(
         PIPE_NAME,
         win32pipe.PIPE_ACCESS_OUTBOUND,
@@ -83,7 +87,7 @@ def main():
         sys.exit(1)
 
     signal.signal(signal.SIGINT,  signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGBREAK, signal_handler)
 
     # Voltage range depends on terminal config
     if args.mode == "rse":
@@ -131,7 +135,7 @@ def main():
 
                 try:
                     win32file.WriteFile(pipe_handle, packet)
-                except BrokenPipeError:
+                except pywintypes.error:
                     print("[feeder] pipe reader closed — exiting")
                     break
 

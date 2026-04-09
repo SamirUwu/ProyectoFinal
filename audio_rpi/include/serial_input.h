@@ -6,15 +6,15 @@
 // Debe coincidir con PACKET_SAMPLES del sketch Arduino
 #define SERIAL_PACKET_SAMPLES 128
 
-// Busca el primer puerto ttyUSB* / ttyACM* disponible.
-// Devuelve el path (ej: "/dev/ttyUSB1") o NULL si no hay ninguno.
+// Busca el primer puerto COM disponible (COM1-COM32).
+// Devuelve el nombre (ej: "COM3") o NULL si no hay ninguno.
 const char *serial_autodetect(void);
 
-// Abre el puerto serial. Si port == NULL, autodetecta.
-// Devuelve el fd o -1 en error.
+// Abre el puerto COM. Si port == NULL, autodetecta.
+// Devuelve un fd (índice interno) o -1 en error.
 int  serial_open(const char *port, int baud);
 
-// Cierra el puerto serial.
+// Cierra el puerto COM.
 void serial_close(int fd);
 
 // Bloquea hasta leer un paquete completo con sync word valida.

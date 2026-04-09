@@ -3,59 +3,42 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-//#include <termios.h>
-#include <unistd.h>
-#include <errno.h>
+#include <windows.h>
 
 // ─── Protocolo (debe coincidir con el sketch Arduino y el monitor Python) ────
 static const uint8_t SYNC_WORD[4] = {0xAA, 0x55, 0xFF, 0x00};
 
-// ─── Mapeo de baud rate a constante POSIX ────────────────────────────────────
-static speed_t baud_to_speed(int baud)
-{
-    switch (baud) {
-        case 9600:    return B9600;
-        case 19200:   return B19200;
-        case 38400:   return B38400;
-        case 57600:   return B57600;
-        case 115200:  return B115200;
-        case 230400:  return B230400;
-        case 460800:  return B460800;
-        case 500000:  return B500000;
-        case 1000000: return B1000000;
-        case 2000000: return B2000000;
-        default:
-            fprintf(stderr, "[serial] baud %d no soportado, usando 460800\n", baud);
-            return B460800;
-    }
-}
+// ─── Tabla interna de handles (mapea fd entero → HANDLE de Windows) ──────────
+#define MAX_SERIAL_PORTS 8
+static HANDLE serial_handles[MAX_SERIAL_PORTS];
+static int    serial_fd_count = 0;
 
-// ─── Autodetectar puerto serial ──────────────────────────────────────────────
-// Prueba los candidatos en orden y devuelve el primero que abre correctamente.
+// ─── Autodetectar puerto COM ──────────────────────────────────────────────────
+// Prueba COM1-COM32 y devuelve el primero que abre correctamente.
 // Devuelve un puntero estático válido hasta la próxima llamada, o NULL si no
 // encuentra ninguno.
 const char *serial_autodetect(void)
 {
-    static const char *candidates[] = {
-        "/dev/ttyUSB0", "/dev/ttyUSB1", "/dev/ttyUSB2",
-        "/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2",
-        NULL
-    };
-    for (int i = 0; candidates[i] != NULL; i++) {
-        int fd = open(candidates[i], O_RDWR | O_NOCTTY | O_NONBLOCK);
-        if (fd >= 0) {
-            close(fd);
-            printf("[serial] autodetectado: %s\n", candidates[i]);
-            return candidates[i];
+    static char port_name[16];
+    for (int n = 1; n <= 32; n++) {
+        char try_name[24];
+        snprintf(try_name, sizeof(try_name), "\\\\.\\COM%d", n);
+        HANDLE h = CreateFileA(try_name, GENERIC_READ | GENERIC_WRITE,
+                               0, NULL, OPEN_EXISTING, 0, NULL);
+        if (h != INVALID_HANDLE_VALUE) {
+            CloseHandle(h);
+            snprintf(port_name, sizeof(port_name), "COM%d", n);
+            printf("[serial] autodetectado: %s\n", port_name);
+            return port_name;
         }
     }
-    fprintf(stderr, "[serial] no se encontro ningun puerto serial\n");
+    fprintf(stderr, "[serial] no se encontro ningun puerto COM\n");
     return NULL;
 }
 
-// ─── Abrir y configurar el puerto ────────────────────────────────────────────
+// ─── Abrir y configurar el puerto COM ────────────────────────────────────────
 // Si port == NULL, autodetecta.
+// Devuelve un fd (índice en tabla interna) o -1 en error.
 int serial_open(const char *port, int baud)
 {
     if (port == NULL) {
@@ -63,73 +46,108 @@ int serial_open(const char *port, int baud)
         if (port == NULL) return -1;
     }
 
-    int fd = open(port, O_RDWR | O_NOCTTY | O_SYNC);
-    if (fd < 0) {
-        fprintf(stderr, "[serial] no se pudo abrir %s: %s\n", port, strerror(errno));
+    if (serial_fd_count >= MAX_SERIAL_PORTS) {
+        fprintf(stderr, "[serial] demasiados puertos abiertos\n");
         return -1;
     }
 
-    struct termios tty;
-    if (tcgetattr(fd, &tty) != 0) {
-        fprintf(stderr, "[serial] tcgetattr: %s\n", strerror(errno));
-        close(fd);
+    // Usar prefijo \\.\COMx para compatibilidad con puertos > COM9
+    char dev_name[32];
+    snprintf(dev_name, sizeof(dev_name), "\\\\.\\%s", port);
+
+    HANDLE h = CreateFileA(dev_name, GENERIC_READ | GENERIC_WRITE,
+                           0, NULL, OPEN_EXISTING, 0, NULL);
+    if (h == INVALID_HANDLE_VALUE) {
+        fprintf(stderr, "[serial] no se pudo abrir %s: error %lu\n",
+                port, GetLastError());
         return -1;
     }
 
-    speed_t spd = baud_to_speed(baud);
-    cfsetispeed(&tty, spd);
-    cfsetospeed(&tty, spd);
+    DCB dcb;
+    memset(&dcb, 0, sizeof(dcb));
+    dcb.DCBlength = sizeof(dcb);
+    if (!GetCommState(h, &dcb)) {
+        fprintf(stderr, "[serial] GetCommState: error %lu\n", GetLastError());
+        CloseHandle(h);
+        return -1;
+    }
 
-    // 8N1, sin control de flujo, modo raw
-    cfmakeraw(&tty);
-    tty.c_cflag |= (CLOCAL | CREAD);
-    tty.c_cflag &= ~CSTOPB;        // 1 stop bit
-    tty.c_cflag &= ~CRTSCTS;       // sin HW flow control
+    // 8N1, sin control de flujo, baud rate configurable
+    dcb.BaudRate        = (DWORD)baud;
+    dcb.ByteSize        = 8;
+    dcb.Parity          = NOPARITY;
+    dcb.StopBits        = ONESTOPBIT;
+    dcb.fBinary         = TRUE;
+    dcb.fParity         = FALSE;
+    dcb.fOutxCtsFlow    = FALSE;
+    dcb.fOutxDsrFlow    = FALSE;
+    dcb.fDtrControl     = DTR_CONTROL_DISABLE;
+    dcb.fRtsControl     = RTS_CONTROL_DISABLE;
+    dcb.fOutX           = FALSE;
+    dcb.fInX            = FALSE;
 
-    // Timeout de lectura: 2 segundos
-    tty.c_cc[VMIN]  = 0;
-    tty.c_cc[VTIME] = 20;          // unidades de 100 ms → 2 s
+    if (!SetCommState(h, &dcb)) {
+        fprintf(stderr, "[serial] SetCommState: error %lu\n", GetLastError());
+        CloseHandle(h);
+        return -1;
+    }
 
-    if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-        fprintf(stderr, "[serial] tcsetattr: %s\n", strerror(errno));
-        close(fd);
+    // Timeout de lectura: 2 segundos total
+    COMMTIMEOUTS timeouts;
+    memset(&timeouts, 0, sizeof(timeouts));
+    timeouts.ReadTotalTimeoutConstant    = 2000; // ms
+    timeouts.ReadTotalTimeoutMultiplier  = 0;
+    timeouts.ReadIntervalTimeout         = 0;
+    timeouts.WriteTotalTimeoutConstant   = 0;
+    timeouts.WriteTotalTimeoutMultiplier = 0;
+
+    if (!SetCommTimeouts(h, &timeouts)) {
+        fprintf(stderr, "[serial] SetCommTimeouts: error %lu\n", GetLastError());
+        CloseHandle(h);
         return -1;
     }
 
     // Vaciar buffer de entrada antes de empezar
-    usleep(100000);   // 100 ms: el ESP32 puede estar enviando basura al conectar
-    tcflush(fd, TCIFLUSH);
+    Sleep(100);  // 100 ms: el ESP32 puede estar enviando basura al conectar
+    PurgeComm(h, PURGE_RXCLEAR);
 
     printf("[serial] abierto %s @ %d baud\n", port, baud);
+    int fd = serial_fd_count++;
+    serial_handles[fd] = h;
     return fd;
 }
 
 void serial_close(int fd)
 {
-    if (fd >= 0) close(fd);
+    if (fd >= 0 && fd < MAX_SERIAL_PORTS && serial_handles[fd] != INVALID_HANDLE_VALUE) {
+        CloseHandle(serial_handles[fd]);
+        serial_handles[fd] = INVALID_HANDLE_VALUE;
+    }
 }
 
 // ─── Leer exactamente n bytes (bloqueante con timeout) ───────────────────────
-static int read_exact(int fd, uint8_t *buf, int n)
+static int read_exact(HANDLE h, uint8_t *buf, DWORD n)
 {
-    int total = 0;
+    DWORD total = 0;
     while (total < n) {
-        int r = read(fd, buf + total, n - total);
-        if (r <= 0) return -1;   // timeout o error
+        DWORD r = 0;
+        if (!ReadFile(h, buf + total, n - total, &r, NULL) || r == 0)
+            return -1;  // timeout o error
         total += r;
     }
     return 0;
 }
 
 // ─── Buscar sync word con ventana deslizante ─────────────────────────────────
-static int find_sync(int fd)
+static int find_sync(HANDLE h)
 {
     uint8_t window[4] = {0};
     // Intentamos hasta 8 * PACKET_PAYLOAD bytes antes de rendirse
     int max_tries = SERIAL_PACKET_SAMPLES * 8 * 2;
     for (int t = 0; t < max_tries; t++) {
         uint8_t b;
-        if (read(fd, &b, 1) != 1) return -1;
+        DWORD r = 0;
+        if (!ReadFile(h, &b, 1, &r, NULL) || r == 0) return -1;
         // Desplazar ventana
         window[0] = window[1];
         window[1] = window[2];
@@ -144,10 +162,13 @@ static int find_sync(int fd)
 // ─── Leer un paquete completo ─────────────────────────────────────────────────
 int serial_read_packet(int fd, uint16_t *out_samples)
 {
-    if (find_sync(fd) < 0) return -1;
+    if (fd < 0 || fd >= MAX_SERIAL_PORTS || serial_handles[fd] == INVALID_HANDLE_VALUE) return -1;
+    HANDLE h = serial_handles[fd];
+
+    if (find_sync(h) < 0) return -1;
 
     uint8_t raw[SERIAL_PACKET_SAMPLES * 2];
-    if (read_exact(fd, raw, sizeof(raw)) < 0) {
+    if (read_exact(h, raw, (DWORD)sizeof(raw)) < 0) {
         fprintf(stderr, "[serial] timeout leyendo payload\n");
         return -1;
     }
