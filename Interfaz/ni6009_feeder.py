@@ -119,10 +119,12 @@ def main():
                 sample_mode=AcquisitionType.CONTINUOUS
             )
             
-            # CRITICAL: Increase buffer size and configure read behavior
-            task.in_stream.input_buf_size = PACKET_SAMPLES * 16  # Increase from *4 to *16
-            task.in_stream.read_all_avail_samp = False  # Don't read all available, read exactly what we ask
+            # CRITICAL: Much larger buffer to prevent underruns
+            task.in_stream.input_buf_size = PACKET_SAMPLES * 32  # Increase to 32x
+            task.in_stream.read_all_avail_samp = False
             
+            # Set a longer timeout for slower systems
+            task.timing.samp_quant_samp_per_chan = PACKET_SAMPLES * 2            
             task.start()
             print("[feeder] DAQ task running — press Ctrl+C to stop\n")
 
@@ -134,7 +136,7 @@ def main():
                 try:
                     samples = task.read(
                         number_of_samples_per_channel=PACKET_SAMPLES,
-                        timeout=5.0
+                        timeout=10.0
                     )
                 except Exception as e:
                     print(f"[feeder] read timeout or error: {e}")
