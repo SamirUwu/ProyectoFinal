@@ -27,10 +27,11 @@ import signal
 import win32pipe
 import win32file
 import pywintypes
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import PACKET_SAMPLES, PIPE_NAME
 
-PACKET_SAMPLES = 256
 SYNC_WORD = bytes([0xAA, 0x55, 0xFF, 0x00])
-PIPE_NAME = r"\\.\pipe\ni6009"
 
 # ADC emulation range (matches ESP32 12-bit: 0-4095, midpoint 2048)
 ADC_BITS   = 12

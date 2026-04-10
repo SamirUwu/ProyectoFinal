@@ -3,10 +3,12 @@ import socket
 import struct
 import threading
 import time
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from config import PACKET_SAMPLES, TCP_HOST, TCP_PORT
 
-BATCH_SIZE = 128
-TCP_HOST   = "127.0.0.1"
-TCP_PORT   = 54321
+BATCH_SIZE = PACKET_SAMPLES
 
 class SocketReceiver(QObject):
     batch_received = pyqtSignal(list, list)

@@ -16,8 +16,8 @@
 #include "../include/pitch_shifter.h"
 #include "../include/phaser.h"
 #include "../include/reverb.h"
+#include "../include/config.h"
 
-#define SAMPLE_RATE        44100
 #define PI                 3.14159265358979323846f
 #define ALSA_WRITE_BATCHES 4
 #define ALSA_PERIOD_FRAMES (SERIAL_PACKET_SAMPLES * ALSA_WRITE_BATCHES)
