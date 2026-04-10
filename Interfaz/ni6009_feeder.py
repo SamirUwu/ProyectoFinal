@@ -119,28 +119,39 @@ def main():
                 sample_mode=AcquisitionType.CONTINUOUS
             )
             
-            # CRITICAL: Much larger buffer to prevent underruns
-            task.in_stream.input_buf_size = PACKET_SAMPLES * 32  # Increase to 32x
-            task.in_stream.read_all_avail_samp = False
+            # Maximum safe buffer for stability
+            try:
+                task.in_stream.input_buf_size = min(PACKET_SAMPLES * 64, 262144)
+            except:
+                pass
             
-            # Set a longer timeout for slower systems
-            task.timing.samp_quant_samp_per_chan = PACKET_SAMPLES * 2            
+            try:
+                task.in_stream.read_all_avail_samp = False
+            except:
+                pass
+            
             task.start()
             print("[feeder] DAQ task running — press Ctrl+C to stop\n")
 
             total_packets = 0
             t0 = time.time()
+            consecutive_errors = 0
 
             while running:
-                # Read exactly PACKET_SAMPLES with timeout=5s
                 try:
                     samples = task.read(
                         number_of_samples_per_channel=PACKET_SAMPLES,
                         timeout=10.0
                     )
+                    consecutive_errors = 0
                 except Exception as e:
-                    print(f"[feeder] read timeout or error: {e}")
-                    break
+                    consecutive_errors += 1
+                    print(f"[feeder] read error #{consecutive_errors}: {type(e).__name__}")
+                    if consecutive_errors >= 3:
+                        print("[feeder] too many errors, stopping")
+                        break
+                    time.sleep(0.01)
+                    continue
 
                 packet = build_packet(samples, v_min, v_max)
 
@@ -151,7 +162,7 @@ def main():
                     break
 
                 total_packets += 1
-                if total_packets % 344 == 0:   # ~1 s at 44100/128
+                if total_packets % 172 == 0:   # ~1 s at 44100/256
                     elapsed = time.time() - t0
                     pps = total_packets / elapsed
                     print(f"[feeder] {total_packets} packets | {pps:.1f} pkt/s | "
