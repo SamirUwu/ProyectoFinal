@@ -395,6 +395,7 @@ class MainWindow(QWidget):
         x_post = np.arange(len(post_data))
 
         if not self.show_fft:
+            # TIME VIEW - Customizable X-axis range
             DISPLAY_SAMPLES = 1024
             pre_display  = pre_data[-DISPLAY_SAMPLES:] if len(pre_data) > DISPLAY_SAMPLES else pre_data
             post_display = post_data[-DISPLAY_SAMPLES:] if len(post_data) > DISPLAY_SAMPLES else post_data
@@ -402,25 +403,35 @@ class MainWindow(QWidget):
             x_pre  = np.arange(len(pre_display))
             x_post = np.arange(len(post_display))
 
-            self.plot_pre.setLabel("bottom", "Time")
+            self.plot_pre.setLabel("bottom", "Samples")
             self.plot_pre.setLabel("left", "Amplitude")
-            self.plot_pre.enableAutoRange()
+            self.plot_pre.enableAutoRange()  # Auto Y-axis
+            # Unlock X-axis: comment out or modify the next line
+            # self.plot_pre.setXRange(0, len(x_pre))  # Remove this to enable auto-scaling
             self.curve_pre.setData(x_pre, pre_display)
 
-            self.plot_post.setLabel("bottom", "Time")
+            self.plot_post.setLabel("bottom", "Samples")
             self.plot_post.setLabel("left", "Amplitude")
-            self.plot_post.enableAutoRange()
+            self.plot_post.enableAutoRange()  # Auto Y-axis
+            # self.plot_post.setXRange(0, len(x_post))  # Remove this to enable auto-scaling
             self.curve_post.setData(x_post, post_display)
         else:
+            # FFT VIEW - Customizable frequency range
             freqs_pre,  Y_pre  = self._compute_fft(self.pre_buffer, '_fft_pre')
             freqs_post, Y_post = self._compute_fft(post_src,        '_fft_post')
             mask = freqs_pre <= 20000
 
             if not self.user_zoom:
-                self.plot_pre.setXRange(0, 20000)
-                self.plot_pre.setYRange(-170, 0)
-                self.plot_post.setXRange(0, 20000)
-                self.plot_post.setYRange(-170, 0)
+                # MODIFY THESE RANGES TO YOUR TASTE
+                X_MIN_FFT = 0          # Minimum frequency (Hz)
+                X_MAX_FFT = 20000      # Maximum frequency (Hz) - change to 10000, 5000, etc.
+                Y_MIN_FFT = -170       # Minimum magnitude (dBFS)
+                Y_MAX_FFT = 0          # Maximum magnitude (dBFS)
+                
+                self.plot_pre.setXRange(X_MIN_FFT, X_MAX_FFT)
+                self.plot_pre.setYRange(Y_MIN_FFT, Y_MAX_FFT)
+                self.plot_post.setXRange(X_MIN_FFT, X_MAX_FFT)
+                self.plot_post.setYRange(Y_MIN_FFT, Y_MAX_FFT)
 
             self.plot_pre.setLabel("bottom", "Frequency (Hz)")
             self.plot_pre.setLabel("left", "Magnitude (dBFS)")
