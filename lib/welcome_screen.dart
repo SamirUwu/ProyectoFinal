@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-//import 'justincase.dart';
-import 'preset_screen.dart';
+import 'network_settings_screen.dart';
 
 
 class WelcomeScreen extends StatefulWidget {
@@ -18,7 +17,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     Future.delayed(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const PresetScreen()),
+        MaterialPageRoute(builder: (context) => const NetworkSettingsScreen()),
       );
     });
   }

@@ -1,17 +1,39 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:hive/hive.dart';
 
 class NetworkService {
-  static const String _host = "192.168.1.150";  
+  static String _host = "";
   static const int _port = 5000;
 
   static Socket? _socket;
   static bool _running = false;
 
+  static String get host => _host;
+
+  static void setHost(String newHost) {
+    _host = newHost;
+    final box = Hive.box('preset_data');
+    box.put('network_host', newHost);
+    // Reconnect with new host
+    _socket?.destroy();
+    _socket = null;
+  }
+
+  static void loadHostFromStorage() {
+    final box = Hive.box('preset_data');
+    final savedHost = box.get('network_host');
+    if (savedHost != null && savedHost is String) {
+      _host = savedHost;
+    }
+  }
+
   static Future<void> startAutoConnect() async {
     if (_running) return;
     _running = true;
+
+    loadHostFromStorage();
 
     while (_running) {
       if (_socket == null) {

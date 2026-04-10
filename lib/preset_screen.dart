@@ -3,6 +3,7 @@ import 'edit_preset_screen.dart';
 import 'package:hive/hive.dart';
 import 'dart:convert'; 
 import 'network_service.dart';
+import 'network_settings_screen.dart';
 import 'main.dart';
 
 class PresetScreen extends StatefulWidget {
@@ -28,7 +29,6 @@ class _PresetScreenState extends State<PresetScreen> {
           ..addAll(List<String>.from(savedPresets));
       });
     }
-    //debugPrint('PRESETS EN MEMORIA: $presets');
   }
 
 
@@ -36,7 +36,6 @@ class _PresetScreenState extends State<PresetScreen> {
   void initState() {
     super.initState();
     _loadPresetsFromHive();
-    //NetworkService.connect();
   }
 
   void _sendPresetWithMode(String presetName, String mode) {
@@ -58,7 +57,7 @@ class _PresetScreenState extends State<PresetScreen> {
       });
 
       effectsList.add({
-        "id": "fx_$i",       // FIX: Python necesita id para remove_effect
+        "id": "fx_$i",
         "type": effectName.toString(),
         "enabled": true,
         "params": cleanParams,
@@ -91,7 +90,7 @@ class _PresetScreenState extends State<PresetScreen> {
     if (presets.length >= maxPresets) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('¡Límite de presets alcanzado!'),
+          content: Text('Limite de presets alcanzado!'),
           duration: Duration(seconds: 2),
         ),
       );
@@ -130,12 +129,11 @@ class _PresetScreenState extends State<PresetScreen> {
         presets.add(result!);
         final box = Hive.box('preset_list');
         box.put('list', presets);
-        //debugPrint('LISTA DE PRESETS GUARDADA: $presets');
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Preset "$result" añadido'),
+          content: Text('Preset "$result" anadido'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -311,7 +309,7 @@ class _PresetScreenState extends State<PresetScreen> {
             ElevatedButton.icon(
               onPressed: _addPreset,
               icon: const Icon(Icons.add),
-              label: const Text('Añadir'),
+              label: const Text('Anadir'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.deepPurple,
                 foregroundColor: Colors.white,
@@ -333,17 +331,37 @@ class _PresetScreenState extends State<PresetScreen> {
 
               return Padding(
                 padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Modo oscuro',
-                      style: TextStyle(fontSize: 18),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Modo oscuro',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                        Switch(
+                          value: appState.isDark,
+                          onChanged: (value) {
+                            appState.toggleTheme(value);
+                          },
+                        ),
+                      ],
                     ),
-                    Switch(
-                      value: appState.isDark,
-                      onChanged: (value) {
-                        appState.toggleTheme(value);
+                    const Divider(),
+                    ListTile(
+                      leading: const Icon(Icons.wifi),
+                      title: const Text('Configuracion de Red'),
+                      subtitle: Text('IP: ${NetworkService.host}'),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const NetworkSettingsScreen(isFromPresets: true),
+                          ),
+                        );
                       },
                     ),
                   ],
