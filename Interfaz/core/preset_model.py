@@ -4,6 +4,7 @@ class PresetModel:
     def __init__(self, name="Preset1"):
         self.name = name
         self.effects = []
+        self.master_gain = 1.0
 
     def set_effects(self, effects_list):
         self.effects = effects_list
@@ -22,6 +23,7 @@ class PresetModel:
 
     def load_from_json(self, data):
         self.name = data.get("name", self.name)
+        self.master_gain = float(data.get("master_gain", 1.0))
         incoming_effects = data.get("effects", [])
         self.effects = []
 
@@ -40,6 +42,7 @@ class PresetModel:
         payload = {
             "command": "apply_preset",
             "name": self.name,
+            "master_gain": self.master_gain,
             "effects": self.effects
         }
         return json.dumps(payload, indent=2)
