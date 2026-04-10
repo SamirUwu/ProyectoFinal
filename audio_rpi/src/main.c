@@ -209,8 +209,8 @@ int main(void)
 
 #elif SIM_MODE == 3
     HANDLE pipe_handle = CreateFileA(
-        "\\\\.\\pipe\\ni6009", GENERIC_READ, 0, NULL,
-        OPEN_EXISTING, 0, NULL);
+        "\\\\.\\pipe\\ni6009", FILE_GENERIC_READ, 0, NULL,
+        OPEN_EXISTING, FILE_FLAG_NO_BUFFERING, NULL);
     if (pipe_handle == INVALID_HANDLE_VALUE) {
         fprintf(stderr, "[SIM_MODE 3] Could not open pipe: error %lu\n", GetLastError());
         return 1;

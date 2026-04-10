@@ -25,6 +25,9 @@ cd "%PROJECT_DIR%Interfaz"
 call venv\Scripts\activate.bat
 start "NI Feeder" python ni6009_feeder.py --device %NI_DEVICE% --channel %NI_CHANNEL% --mode %NI_MODE%
 
+:: Wait for feeder to create and connect the pipe
+timeout /t 2 >NUL
+
 :: Start audio engine (connects to named pipe, then opens TCP server)
 echo [2/3] Starting audio engine...
 cd "%PROJECT_DIR%audio_rpi"
