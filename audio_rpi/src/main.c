@@ -79,6 +79,8 @@ int enabled[FX_COUNT]  = {0};
 int fx_order[FX_COUNT] = {0};
 int fx_order_count     = 0;
 
+float master_gain = MASTER_GAIN_DEFAULT;
+
 char json_buffer[4096];
 
 typedef struct {
@@ -247,6 +249,21 @@ int main(void)
             memset(fx_order, 0, sizeof(fx_order));
             fx_order_count = 0;
 
+            // Parse master_gain from JSON
+            char *mg_pos = strstr(json_buffer, "\"master_gain\"");
+            if (mg_pos) {
+                char *mg_colon = strchr(mg_pos, ':');
+                if (mg_colon) {
+                    float mg_val = 0.0f;
+                    if (sscanf(mg_colon + 1, "%f", &mg_val) == 1) {
+                        if (mg_val < MASTER_GAIN_MIN) mg_val = MASTER_GAIN_MIN;
+                        if (mg_val > MASTER_GAIN_MAX) mg_val = MASTER_GAIN_MAX;
+                        master_gain = mg_val;
+                        printf("  master_gain = %f\n", master_gain);
+                    }
+                }
+            }
+
             char *cursor = json_buffer;
             while ((cursor = strstr(cursor, "\"type\"")) != NULL) {
                 char *type_colon = strchr(cursor, ':');
@@ -360,10 +377,16 @@ int main(void)
 
         // ── Write to audio output ─────────────────────────────────────────────
         for (int s = 0; s < SERIAL_PACKET_SAMPLES; s++) {
-            float clamped = batch_post[s];
-            if (clamped >  1.0f) clamped =  1.0f;
-            if (clamped < -1.0f) clamped = -1.0f;
-            alsa_accum[alsa_accum_pos++] = (int16_t)(clamped * 32767.0f);
+            float boosted = batch_post[s] * master_gain;
+            // Apply soft-clipping: tanh when boosting, hard-clamp otherwise
+            if (master_gain > 1.0f) {
+                // Always apply tanh for smooth, continuous soft-clipping
+                boosted = tanhf(boosted);
+            } else {
+                if (boosted >  1.0f) boosted =  1.0f;
+                if (boosted < -1.0f) boosted = -1.0f;
+            }
+            alsa_accum[alsa_accum_pos++] = (int16_t)(boosted * 32767.0f);
         }
         if (alsa_accum_pos >= ALSA_PERIOD_FRAMES) {
             alsa_write_safe(pcm, alsa_accum, ALSA_PERIOD_FRAMES);
