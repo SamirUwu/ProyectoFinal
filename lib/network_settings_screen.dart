@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'network_service.dart';
 import 'preset_screen.dart';
+import 'widgets/network_debug_overlay.dart';
 
 class NetworkSettingsScreen extends StatefulWidget {
   final bool isFromPresets;
@@ -35,7 +36,6 @@ class _NetworkSettingsScreenState extends State<NetworkSettingsScreen> {
       return;
     }
 
-    // Basic IP validation
     final ipRegex = RegExp(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$');
     if (!ipRegex.hasMatch(newHost)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -43,6 +43,9 @@ class _NetworkSettingsScreenState extends State<NetworkSettingsScreen> {
       );
       return;
     }
+
+    // ✅ ESTO FALTABA — sin esto el host nunca cambia
+    NetworkService.setHost(newHost);
 
     if (widget.isFromPresets) {
       Navigator.pop(context);
@@ -52,19 +55,16 @@ class _NetworkSettingsScreenState extends State<NetworkSettingsScreen> {
         MaterialPageRoute(builder: (context) => const PresetScreen()),
       );
     }
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const PresetScreen()),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Configuración de Red'),
-      ),
-      body: Padding(
+    return NetworkDebugOverlay(
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Configuración de Red'),
+        ),
+        body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,19 +99,16 @@ class _NetworkSettingsScreenState extends State<NetworkSettingsScreen> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _hostController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
                     ],
-                    style: const TextStyle(
-                      fontSize: 24,
-                      color: Colors.white,
-                    ),
+                    style: const TextStyle(fontSize: 24, color: Colors.white),
                     decoration: InputDecoration(
                       hintText: '192.168.1.150',
-                      hintStyle: TextStyle(
-                        color: Colors.white.withOpacity(0.5),
-                      ),
+                      hintStyle:
+                          TextStyle(color: Colors.white.withOpacity(0.5)),
                       filled: true,
                       fillColor: const Color.fromARGB(255, 85, 77, 100),
                       border: OutlineInputBorder(
@@ -133,15 +130,13 @@ class _NetworkSettingsScreenState extends State<NetworkSettingsScreen> {
                   backgroundColor: Colors.deepPurple,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text(
-                  'GUARDAR',
-                  style: TextStyle(fontSize: 18),
-                ),
+                child: const Text('GUARDAR', style: TextStyle(fontSize: 18)),
               ),
             ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
+      ),   // cierra Scaffold
+    );     // cierra NetworkDebugOverlay
   }
 }
