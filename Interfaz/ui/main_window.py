@@ -3,6 +3,7 @@ import numpy as np
 import pyqtgraph as pg
 import json
 import os
+import math  # ← added for dB calculation
 
 from ui.effect_widget import EffectWidget
 from core.preset_model import PresetModel
@@ -85,11 +86,29 @@ class MainWindow(QWidget):
         self.model = PresetModel(self.current_preset_key)
         first = self.presets_data[self.current_preset_key]
         self.model.set_effects(first.get("effects", []))
-
+        self.model.master_gain = float(first.get("master_gain", 1.0))  # ← load saved gain
 
         #Cargar efectos
         self.load_effects()
         self.left_layout.addWidget(self.effects_list)
+
+        # ── Master Gain slider ────────────────────────────────────────────────
+        gain_header = QLabel("Master Gain")
+        gain_header.setStyleSheet("font-weight: bold; font-size: 11pt;")
+        self.left_layout.addWidget(gain_header)
+
+        self.gain_label = QLabel()
+        self.left_layout.addWidget(self.gain_label)
+
+        self.gain_slider = QSlider(Qt.Orientation.Horizontal)
+        self.gain_slider.setMinimum(10)   # 0.1 * 100 = 10
+        self.gain_slider.setMaximum(400)  # 4.0 * 100
+        self.gain_slider.setValue(int(self.model.master_gain * 100))
+        self._update_gain_label(self.model.master_gain)
+        self.gain_slider.valueChanged.connect(self._on_gain_slider_moved)
+        self.gain_slider.sliderReleased.connect(self._on_gain_slider_released)
+        self.left_layout.addWidget(self.gain_slider)
+        # ─────────────────────────────────────────────────────────────────────
         
         self.right_layout = QVBoxLayout()
 
@@ -211,6 +230,12 @@ class MainWindow(QWidget):
         self.preset_dropdown.setCurrentText(incoming_name)
         self.preset_dropdown.blockSignals(False)
 
+        # ← Sync gain slider from remote preset
+        self.gain_slider.blockSignals(True)
+        self.gain_slider.setValue(int(self.model.master_gain * 100))
+        self.gain_slider.blockSignals(False)
+        self._update_gain_label(self.model.master_gain)
+
         self._save_current_preset()
         self.load_effects()
         self.receiver.send_json(self.model.to_json())
@@ -242,10 +267,17 @@ class MainWindow(QWidget):
         preset = self.presets_data[preset_key]
         self.model = PresetModel(preset["name"])
         self.model.set_effects(preset.get("effects", []))
+        self.model.master_gain = float(preset.get("master_gain", 1.0))  # ← load gain
 
         self.signal_buffer.clear()
         self.pre_buffer.clear()
         self.load_effects()
+
+        # ← Sync gain slider when switching presets
+        self.gain_slider.blockSignals(True)
+        self.gain_slider.setValue(int(self.model.master_gain * 100))
+        self.gain_slider.blockSignals(False)
+        self._update_gain_label(self.model.master_gain)
 
         json_data = self.model.to_json()
         self.receiver.send_json(json_data)
@@ -257,6 +289,7 @@ class MainWindow(QWidget):
         parsed = _json.loads(raw)
         self.presets_data[self.current_preset_key] = {
             "name": parsed["name"],
+            "master_gain": parsed.get("master_gain", 1.0),  # ← persist gain
             "effects": parsed["effects"]
         }
         self._save_presets_file(self.presets_data)
@@ -347,8 +380,6 @@ class MainWindow(QWidget):
 
     def update_pre_buffer(self, value):
         self.pre_buffer.append(value)
-        #if len(self.signal_buffer) % 200 == 0:
-            #print("post buffer:", len(self.signal_buffer))
     
     def update_buffers_batch(self, pre_batch, post_batch):
         VREF = 3.3
@@ -441,6 +472,28 @@ class MainWindow(QWidget):
         print(json_data)
 
         self.receiver.send_json(json_data)
+
+    # ── Master Gain helpers ───────────────────────────────────────────────────
+    def _update_gain_label(self, gain):
+        if gain > 0:
+            db = 20.0 * math.log10(gain)
+            self.gain_label.setText(f"Master Gain: {gain:.2f}  ({db:+.1f} dB)")
+        else:
+            self.gain_label.setText("Master Gain: --")
+
+    def _on_gain_slider_moved(self, slider_value):
+        """Updates the label live while dragging, without sending to C."""
+        gain = slider_value / 100.0
+        self._update_gain_label(gain)
+
+    def _on_gain_slider_released(self):
+        """Commits the gain value only when the user releases the slider."""
+        gain = self.gain_slider.value() / 100.0
+        self.model.master_gain = gain
+        self._update_gain_label(gain)
+        self._save_current_preset()
+        self.receiver.send_json(self.model.to_json())
+    # ─────────────────────────────────────────────────────────────────────────
         
     def toggle_fft(self):
         self.show_fft = self.toggle_fft_btn.isChecked()
