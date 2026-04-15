@@ -3,7 +3,7 @@ import numpy as np
 import pyqtgraph as pg
 import json
 import os
-import math  # ← added for dB calculation
+import math
 
 from ui.effect_widget import EffectWidget
 from core.preset_model import PresetModel
@@ -86,7 +86,8 @@ class MainWindow(QWidget):
         self.model = PresetModel(self.current_preset_key)
         first = self.presets_data[self.current_preset_key]
         self.model.set_effects(first.get("effects", []))
-        self.model.master_gain = float(first.get("master_gain", 1.0))  # ← load saved gain
+        self.model.master_gain = float(first.get("master_gain", 1.0))
+
 
         #Cargar efectos
         self.load_effects()
@@ -108,7 +109,6 @@ class MainWindow(QWidget):
         self.gain_slider.valueChanged.connect(self._on_gain_slider_moved)
         self.gain_slider.sliderReleased.connect(self._on_gain_slider_released)
         self.left_layout.addWidget(self.gain_slider)
-        # ─────────────────────────────────────────────────────────────────────
         
         self.right_layout = QVBoxLayout()
 
@@ -173,9 +173,32 @@ class MainWindow(QWidget):
         """)
         self.bypass_label.setCursor(Qt.CursorShape.PointingHandCursor)
         self.bypass_label.adjustSize()
+        self.bypass_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.bypass_label.move(self.plot_post.width() - self.bypass_label.width() - 10, 10)
         self.bypass_label.show()
         self.bypass_label.mousePressEvent = self._toggle_bypass_click
+
+        # Pause/Play button
+        self.paused = False
+        self.pause_label = QLabel("WATCHING", self.plot_pre)
+        self.pause_label.setStyleSheet("""
+            QLabel {
+                color: #aaaaaa;
+                background-color: rgba(0,0,0,180);
+                border: 1px solid #555;
+                border-radius: 4px;
+                padding: 3px 8px;
+                font-size: 11px;
+                font-weight: bold;
+            }
+        """)
+        self.pause_label.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.pause_label.adjustSize()
+        self.pause_label.setFixedWidth(90)
+        self.pause_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.pause_label.move(0, 10)  
+        self.pause_label.show()
+        self.pause_label.mousePressEvent = self._toggle_pause_click
                 
         self.timer = QTimer()
         self.timer.timeout.connect(self.sim_signal)
@@ -230,7 +253,7 @@ class MainWindow(QWidget):
         self.preset_dropdown.setCurrentText(incoming_name)
         self.preset_dropdown.blockSignals(False)
 
-        # ← Sync gain slider from remote preset
+        # Sync gain slider
         self.gain_slider.blockSignals(True)
         self.gain_slider.setValue(int(self.model.master_gain * 100))
         self.gain_slider.blockSignals(False)
@@ -267,13 +290,13 @@ class MainWindow(QWidget):
         preset = self.presets_data[preset_key]
         self.model = PresetModel(preset["name"])
         self.model.set_effects(preset.get("effects", []))
-        self.model.master_gain = float(preset.get("master_gain", 1.0))  # ← load gain
+        self.model.master_gain = float(preset.get("master_gain", 1.0))
 
         self.signal_buffer.clear()
         self.pre_buffer.clear()
         self.load_effects()
 
-        # ← Sync gain slider when switching presets
+        # Sync gain slider
         self.gain_slider.blockSignals(True)
         self.gain_slider.setValue(int(self.model.master_gain * 100))
         self.gain_slider.blockSignals(False)
@@ -289,7 +312,7 @@ class MainWindow(QWidget):
         parsed = _json.loads(raw)
         self.presets_data[self.current_preset_key] = {
             "name": parsed["name"],
-            "master_gain": parsed.get("master_gain", 1.0),  # ← persist gain
+            "master_gain": parsed.get("master_gain", 1.0),
             "effects": parsed["effects"]
         }
         self._save_presets_file(self.presets_data)
@@ -380,6 +403,8 @@ class MainWindow(QWidget):
 
     def update_pre_buffer(self, value):
         self.pre_buffer.append(value)
+        #if len(self.signal_buffer) % 200 == 0:
+            #print("post buffer:", len(self.signal_buffer))
     
     def update_buffers_batch(self, pre_batch, post_batch):
         VREF = 3.3
@@ -426,6 +451,7 @@ class MainWindow(QWidget):
         x_post = np.arange(len(post_data))
 
         if not self.show_fft:
+            # TIME VIEW - Customizable X-axis range
             DISPLAY_SAMPLES = 1024
             pre_display  = pre_data[-DISPLAY_SAMPLES:] if len(pre_data) > DISPLAY_SAMPLES else pre_data
             post_display = post_data[-DISPLAY_SAMPLES:] if len(post_data) > DISPLAY_SAMPLES else post_data
@@ -433,25 +459,35 @@ class MainWindow(QWidget):
             x_pre  = np.arange(len(pre_display))
             x_post = np.arange(len(post_display))
 
-            self.plot_pre.setLabel("bottom", "Time")
+            self.plot_pre.setLabel("bottom", "Samples")
             self.plot_pre.setLabel("left", "Amplitude")
-            self.plot_pre.enableAutoRange()
+            self.plot_pre.enableAutoRange()  # Auto Y-axis
+            # Unlock X-axis: comment out or modify the next line
+            # self.plot_pre.setXRange(0, len(x_pre))  # Remove this to enable auto-scaling
             self.curve_pre.setData(x_pre, pre_display)
 
-            self.plot_post.setLabel("bottom", "Time")
+            self.plot_post.setLabel("bottom", "Samples")
             self.plot_post.setLabel("left", "Amplitude")
-            self.plot_post.enableAutoRange()
+            self.plot_post.enableAutoRange()  # Auto Y-axis
+            # self.plot_post.setXRange(0, len(x_post))  # Remove this to enable auto-scaling
             self.curve_post.setData(x_post, post_display)
         else:
+            # FFT VIEW - Customizable frequency range
             freqs_pre,  Y_pre  = self._compute_fft(self.pre_buffer, '_fft_pre')
             freqs_post, Y_post = self._compute_fft(post_src,        '_fft_post')
             mask = freqs_pre <= 20000
 
             if not self.user_zoom:
-                self.plot_pre.setXRange(0, 20000)
-                self.plot_pre.setYRange(-170, 0)
-                self.plot_post.setXRange(0, 20000)
-                self.plot_post.setYRange(-170, 0)
+                # MODIFY THESE RANGES TO YOUR TASTE
+                X_MIN_FFT = 0          # Minimum frequency (Hz)
+                X_MAX_FFT = 20000      # Maximum frequency (Hz) - change to 10000, 5000, etc.
+                Y_MIN_FFT = -170       # Minimum magnitude (dBFS)
+                Y_MAX_FFT = 0          # Maximum magnitude (dBFS)
+                
+                self.plot_pre.setXRange(X_MIN_FFT, X_MAX_FFT)
+                self.plot_pre.setYRange(Y_MIN_FFT, Y_MAX_FFT)
+                self.plot_post.setXRange(X_MIN_FFT, X_MAX_FFT)
+                self.plot_post.setYRange(Y_MIN_FFT, Y_MAX_FFT)
 
             self.plot_pre.setLabel("bottom", "Frequency (Hz)")
             self.plot_pre.setLabel("left", "Magnitude (dBFS)")
@@ -473,7 +509,6 @@ class MainWindow(QWidget):
 
         self.receiver.send_json(json_data)
 
-    # ── Master Gain helpers ───────────────────────────────────────────────────
     def _update_gain_label(self, gain):
         if gain > 0:
             db = 20.0 * math.log10(gain)
@@ -482,18 +517,15 @@ class MainWindow(QWidget):
             self.gain_label.setText("Master Gain: --")
 
     def _on_gain_slider_moved(self, slider_value):
-        """Updates the label live while dragging, without sending to C."""
         gain = slider_value / 100.0
         self._update_gain_label(gain)
 
     def _on_gain_slider_released(self):
-        """Commits the gain value only when the user releases the slider."""
         gain = self.gain_slider.value() / 100.0
         self.model.master_gain = gain
         self._update_gain_label(gain)
         self._save_current_preset()
         self.receiver.send_json(self.model.to_json())
-    # ─────────────────────────────────────────────────────────────────────────
         
     def toggle_fft(self):
         self.show_fft = self.toggle_fft_btn.isChecked()
@@ -542,6 +574,44 @@ class MainWindow(QWidget):
             effect["enabled"] = not self.bypass_active
         self.receiver.send_json(self.model.to_json())
 
+    def _toggle_pause_click(self, event):
+            self.paused = not self.paused
+            FIXED_WIDTH = 90  
+            if self.paused:
+                self.timer.stop()
+                self.pause_label.setText("STOPPED")
+                self.pause_label.setStyleSheet("""
+                    QLabel {
+                        color: #ffaa00;
+                        background-color: rgba(60,40,0,200);
+                        border: 1px solid #ffaa00;
+                        border-radius: 4px;
+                        padding: 3px 8px;
+                        font-size: 11px;
+                        font-weight: bold;
+                    }
+                """)
+            else:
+                self.timer.start(100)
+                self.pause_label.setText("WATCHING")
+                self.pause_label.setStyleSheet("""
+                    QLabel {
+                        color: #aaaaaa;
+                        background-color: rgba(0,0,0,180);
+                        border: 1px solid #555;
+                        border-radius: 4px;
+                        padding: 3px 8px;
+                        font-size: 11px;
+                        font-weight: bold;
+                    }
+                """)
+            self.pause_label.setFixedWidth(FIXED_WIDTH)
+
     def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.bypass_label.move(self.plot_post.width() - self.bypass_label.width() - 10, 10)
+            super().resizeEvent(event)
+            self.bypass_label.move(
+                self.plot_post.viewport().width() - self.bypass_label.width() - 10, 10
+            )
+            self.pause_label.move(
+                self.plot_pre.viewport().width() - 90 - 10, 10
+            )
