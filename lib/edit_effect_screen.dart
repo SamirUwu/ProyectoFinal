@@ -23,11 +23,9 @@ final Map<String, List<EffectParam>> effectParams = {
     EffectParam('TONE',   0,   1),
     EffectParam('OUTPUT', 0,   1),    
   ],
-  //'Distortion': [
-  //  EffectParam('GAIN', 0, 1),
-  //  EffectParam('TONE', 0, 1),
-  //  EffectParam('OUTPUT', 0, 1),
-  //],
+  'Distortion': [
+    EffectParam('OUTPUT', 0, 1),
+  ],
   'Delay': [
     EffectParam('TIME',     1, 1000),
     EffectParam('FEEDBACK', 0, 1),

@@ -17,7 +17,7 @@ class NetworkDebugLogger {
 // ─── NetworkService ──────────────────────────────────────────────────────────
 class NetworkService {
   static String _host = "";
-  static const int _port = 5000;
+  static const int _port = 5001;
   static Socket? _socket;
   static bool _running = false;
 

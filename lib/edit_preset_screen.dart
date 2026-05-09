@@ -5,6 +5,7 @@ import 'edit_effect_screen.dart';
 const List<String> availableEffects = [
   'Delay',
   'Overdrive',
+  'Distortion',
   'Chorus',
   'Flanger',
   'Wah',
@@ -17,6 +18,7 @@ const List<String> availableEffects = [
 const Map<String, Map<String, double>> effectDefaults = {
   'Overdrive':    {'GAIN': 0.5,    'TONE': 0.5,   'OUTPUT': 0.5},
   'Delay':        {'TIME': 300.0,  'FEEDBACK': 0.3, 'MIX': 0.15},
+  'Distortion':   {'OUTPUT': 0.5},
   'Wah':          {'FREQ': 1000.0, 'Q': 0.8,      'LEVEL': 1.0},
   'Flanger':      {'RATE': 0.5,    'DEPTH': 0.3,  'FEEDBACK': 0.2, 'MIX': 0.15},
   'Chorus':       {'RATE': 0.5,    'DEPTH': 0.3,  'FEEDBACK': 0.0, 'MIX': 0.15},
