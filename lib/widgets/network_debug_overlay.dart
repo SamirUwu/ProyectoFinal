@@ -112,7 +112,7 @@ class _NetworkDebugOverlayState extends State<NetworkDebugOverlay> {
                           _Stat('HOST',
                               NetworkService.host.isEmpty ? '(vacío!)' : NetworkService.host,
                               NetworkService.host.isEmpty ? const Color(0xFFFF5555) : const Color(0xFF8BE9FD)),
-                          _Stat('PORT', '5000', Colors.white70),
+                          _Stat('PORT', '5001', Colors.white70),
                           _Stat('FAILS', '$_fails', const Color(0xFFFFB86C)),
                           _Stat('SENT', '$_sent', const Color(0xFF50FA7B)),
                         ],
